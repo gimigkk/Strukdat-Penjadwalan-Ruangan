@@ -96,7 +96,21 @@ void searchJadwalRuangan(const unordered_map<string, Ruangan>& daftarRuangan) {
 }
 
 // Cari ruangan yang tersedia pada waktu tertentu
-void searchRuanganTersedia(const unordered_map<string, Ruangan>& daftarRuangan, time_t mulai, time_t selesai) {
+void searchRuanganTersedia(const unordered_map<string, Ruangan>& daftarRuangan) {
+    int thn, bln, hari, jamMulai, menitMulai, jamSelesai, menitSelesai;
+    cout << "Tanggal (YYYY MM DD)\t: ";
+    cin >> thn >> bln >> hari;
+
+    cout << "Waktu mulai (HH MM)\t: ";
+    cin >> jamMulai >> menitMulai;
+    time_t mulai = makeTime(thn, bln, hari, jamMulai, menitMulai);
+
+    cout << "Waktu selesai (HH MM)\t: ";
+    cin >> jamSelesai >> menitSelesai;
+    time_t selesai = makeTime(thn, bln, hari, jamSelesai, menitSelesai);
+
+    cout << endl;
+
     cout << "List ruangan tersedia dari " << formatHourMinute(mulai) << " sampai " << formatHourMinute(selesai) << ",\npada tanggal " << formatDate(mulai) << ":" << endl;
     cout << "---" << endl;
     bool found = false;
@@ -177,21 +191,7 @@ int main (){
                 break;
             }
             case 3: {
-                int thn, bln, hari, jamMulai, menitMulai, jamSelesai, menitSelesai;
-                cout << "Tanggal (YYYY MM DD)\t: ";
-                cin >> thn >> bln >> hari;
-
-                cout << "Waktu mulai (HH MM)\t: ";
-                cin >> jamMulai >> menitMulai;
-                time_t mulai = makeTime(thn, bln, hari, jamMulai, menitMulai);
-
-                cout << "Waktu selesai (HH MM)\t: ";
-                cin >> jamSelesai >> menitSelesai;
-                time_t selesai = makeTime(thn, bln, hari, jamSelesai, menitSelesai);
-
-                cout << endl;
-
-                searchRuanganTersedia(daftarRuangan, mulai, selesai);
+                searchRuanganTersedia(daftarRuangan);
                 break;
             }
             default:
