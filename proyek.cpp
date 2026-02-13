@@ -23,7 +23,7 @@ class Jadwal {
         time_t getMulai() const { return mulai; }
         time_t getSelesai() const { return selesai; }
 
-        string getNamaKegiatan() {
+        string getNamaKegiatan() const {
             return namaKegiatan;
         }
 
@@ -57,15 +57,21 @@ class Ruangan {
         string getId() const { return id; }
         string getNamaRuangan() const { return namaRuangan; }
 
-        void printJadwal() {
-            cout << "Ruangan: "<< getNamaRuangan() << endl;
-            cout << "Jadwal" << endl;
-            cout << "=========================" << endl;
-            for (auto& it : daftarJadwal) {
-                cout << "Kegiatan: " << it.getNamaKegiatan() << endl;
-                cout << "Jam Mulai: " << formatTime(it.getMulai()) << "\nJam Selesai: " << formatTime(it.getSelesai()) << endl;
-                cout << "-------------------------" << endl;
+        void printJadwal() const {
+            if(daftarJadwal.empty()) {
+                cout << "Tidak ada jadwal untuk ruangan ini." << endl;
+                return;
             }
+
+            cout << "Jadwal Ruangan: "<< getNamaRuangan() << endl;
+            cout << "---" << endl;
+            for (const auto& it : daftarJadwal) {
+                cout << "Kegiatan\t: " << it.getNamaKegiatan() << endl;
+                cout << "Jam Mulai\t: " << formatTime(it.getMulai()) << endl;
+                cout << "Jam Selesai\t: " << formatTime(it.getSelesai()) << endl;
+                cout << "---" << endl;
+            }
+            return;
         }
 };
 
@@ -73,6 +79,22 @@ class Ruangan {
 // buat presistent storage kita simpen di file
 // tapi pikirin lagi karena gw ga kepikiran.
 unordered_map<string, Ruangan> daftarRuangan;
+
+// Print semua jadwal dari ruangan tertentu
+// Tapi gw ga yakin soalnya "ruangan atau waktu" wdym "atau"?
+void searchJadwalRuangan(const unordered_map<string, Ruangan>& daftarRuangan) {
+    string searchId;
+    cout << "Masukkan ID Ruangan yang ingin dicari: ";
+    cin >> searchId;
+    cout << endl;
+
+    auto it = daftarRuangan.find(searchId);
+    if (it != daftarRuangan.end()) {
+        it->second.printJadwal();
+    } else {
+        cout << "Ruangan dengan ID " << searchId << " tidak ditemukan." << endl;
+    }
+}
 
 int main (){
     // Fake data buat mempermudah testing
@@ -99,13 +121,50 @@ int main (){
             cout << "Jadwal berhasil ditambahkan." << endl;
         } 
         else {
-            cout << "ERR: Jadwal overlap." << endl;
+            cout << RED << "ERR: Jadwal overlap." << RESET << endl;
         }
     } 
     else {
-        cout << "ERR: Ruangan tidak ditemukan." << endl;
+        cout << RED << "ERR: Ruangan tidak ditemukan." << RESET << endl;
     }
 
     // ngerti ga?
+
+    /// Program Loop
+    while (true) {
+        cout << "\n" << GREEN << "Menu:" << RESET << endl;
+        cout << GREEN << "1. Lihat List Ruangan" << RESET  << endl;
+        cout << GREEN << "2. Search Jadwal Ruangan" << RESET  << endl;
+
+        int choice;
+        cout << GREEN << "Pilih menu (1-2): " << RESET;
+        if (!(cin >> choice)) {
+            cout << endl;
+            cout << RED << "ERR: Input harus angka." << RESET << endl;
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            continue;
+        }
+        cout << endl;
+
+        switch(choice) {
+            case 1: {
+                cout << "Daftar Ruangan:" << endl;
+                for (const auto& pair : daftarRuangan) {
+                    cout << "ID: " << pair.second.getId() << ", Nama: " << pair.second.getNamaRuangan() << endl;
+                }
+                break;
+            }
+            case 2: {
+                searchJadwalRuangan(daftarRuangan);
+                break;
+            }
+            default:
+                cout << "Pilihan tidak valid. Silakan coba lagi." << endl;
+                break;
+        }
+
+    }
+
     return 0;
 }
