@@ -5,6 +5,12 @@
 #include <string>
 using namespace std;
 
+// ANSI Color Codes
+#define RESET "\033[0m"
+#define CYAN "\033[36m"
+#define GREEN "\033[32m"
+#define RED "\033[31m"
+
 // Membuat time_t dari input tahun, bulan, hari, jam, menit
 inline time_t makeTime(int year, int month, int day, int hour, int minute) {
     tm t = {};
