@@ -31,6 +31,20 @@ inline string formatTime(time_t tt) {
     return string(buffer);
 }
 
+inline string formatDate(time_t tt) {
+    tm* t = localtime(&tt);
+    char buffer[11];
+    strftime(buffer, 11, "%Y-%m-%d", t);
+    return string(buffer);
+}
+
+inline string formatHourMinute(time_t tt) {
+    tm* t = localtime(&tt);
+    char buffer[6];
+    strftime(buffer, 6, "%H:%M", t);
+    return string(buffer);
+}
+
 // Cek apakah dua time_t berada pada tanggal yang sama
 inline bool sameDate(time_t a, time_t b) {
     tm* ta = localtime(&a);
