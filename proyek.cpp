@@ -79,8 +79,7 @@ int main (){
     Ruangan r1("Ruang A", "R001");
     Ruangan r2("Ruang B", "R002");
 
-    daftarRuangan[r1.getId()] = r1;
-    daftarRuangan[r2.getId()] = r2;
+    daftarRuangan.insert({{r1.getId(), r1}, {r2.getId(), r2}});
 
     // contoh implementasi bikin jadwal di suatu ruangan
     time_t mulai = makeTime(2026, 2, 14, 9, 0);
@@ -93,10 +92,10 @@ int main (){
     // inset juga pake id ruangan.
 
     // Cek dulu pakai find()
-    if (daftarRuangan.find("R001") != daftarRuangan.end()) {
+    if (daftarRuangan.find("R002") != daftarRuangan.end()) {
         // Kalau ada, baru pakai []
-        if (daftarRuangan["R001"].cekKetersediaan(mulai, selesai)) {
-            daftarRuangan["R001"].tambahJadwal(j1);
+        if (daftarRuangan["R002"].cekKetersediaan(mulai, selesai)) {
+            daftarRuangan["R002"].tambahJadwal(j1);
             cout << "Jadwal berhasil ditambahkan." << endl;
         } 
         else {
