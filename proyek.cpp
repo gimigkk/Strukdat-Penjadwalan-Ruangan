@@ -57,15 +57,15 @@ class Ruangan {
         string getId() const { return id; }
         string getNamaRuangan() const { return namaRuangan; }
 
-            void printJadwal() {
-                cout << "Ruangan: "<< getNamaRuangan() << endl;
-                cout << "Jadwal" << endl;
-                cout << "=========================" << endl;
-                for (auto& it : daftarJadwal) {
-                    cout << "Kegiatan: " << it.getNamaKegiatan() << endl;
-                    cout << "Jam Mulai: " << formatTime(it.getMulai()) << "\nJam Selesai: " << formatTime(it.getSelesai()) << endl;
-                    cout << "-------------------------" << endl;
-                }
+        void printJadwal() {
+            cout << "Ruangan: "<< getNamaRuangan() << endl;
+            cout << "Jadwal" << endl;
+            cout << "=========================" << endl;
+            for (auto& it : daftarJadwal) {
+                cout << "Kegiatan: " << it.getNamaKegiatan() << endl;
+                cout << "Jam Mulai: " << formatTime(it.getMulai()) << "\nJam Selesai: " << formatTime(it.getSelesai()) << endl;
+                cout << "-------------------------" << endl;
+            }
         }
 };
 
