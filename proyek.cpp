@@ -22,6 +22,11 @@ class Jadwal {
         // ini buat keperluan cek jadwal overlap
         time_t getMulai() const { return mulai; }
         time_t getSelesai() const { return selesai; }
+
+        string getNamaKegiatan() {
+            return namaKegiatan;
+        }
+
 };
 
 class Ruangan {
@@ -31,6 +36,7 @@ class Ruangan {
         vector<Jadwal> daftarJadwal;
 
     public:
+        Ruangan() : namaRuangan(" "), id(" ") {}
         Ruangan(string n, string i) : namaRuangan(n), id(i) {}
         
         void tambahJadwal(const Jadwal& j) {
@@ -50,6 +56,17 @@ class Ruangan {
 
         string getId() const { return id; }
         string getNamaRuangan() const { return namaRuangan; }
+
+            void printJadwal() {
+                cout << "Ruangan: "<< getNamaRuangan() << endl;
+                cout << "Jadwal" << endl;
+                cout << "=========================" << endl;
+                for (auto& it : daftarJadwal) {
+                    cout << "Kegiatan: " << it.getNamaKegiatan() << endl;
+                    cout << "Jam Mulai: " << formatTime(it.getMulai()) << "\nJam Selesai: " << formatTime(it.getSelesai()) << endl;
+                    cout << "-------------------------" << endl;
+                }
+        }
 };
 
 // runtime storage kita
@@ -91,4 +108,5 @@ int main (){
     }
 
     // ngerti ga?
+    return 0;
 }
