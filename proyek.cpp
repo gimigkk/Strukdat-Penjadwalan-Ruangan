@@ -43,7 +43,7 @@ class Ruangan {
             daftarJadwal.push_back(j);
         }
         
-        bool cekKetersediaan(time_t mulai, time_t selesai) {
+        bool cekKetersediaan(time_t mulai, time_t selesai) const {
             for (const auto& j : daftarJadwal) {
                 // Check overlap: jika tidak -> (selesai sebelum mulai OR mulai setelah selesai) -> berarti ada overlap
                 if (!(selesai <= j.getMulai() || mulai >= j.getSelesai())) {
@@ -81,7 +81,6 @@ class Ruangan {
 unordered_map<string, Ruangan> daftarRuangan;
 
 // Print semua jadwal dari ruangan tertentu
-// Tapi gw ga yakin soalnya "ruangan atau waktu" wdym "atau"?
 void searchJadwalRuangan(const unordered_map<string, Ruangan>& daftarRuangan) {
     string searchId;
     cout << "Masukkan ID Ruangan yang ingin dicari: ";
@@ -94,6 +93,23 @@ void searchJadwalRuangan(const unordered_map<string, Ruangan>& daftarRuangan) {
     } else {
         cout << "Ruangan dengan ID " << searchId << " tidak ditemukan." << endl;
     }
+}
+
+// Cari ruangan yang tersedia pada waktu tertentu
+void searchRuanganTersedia(const unordered_map<string, Ruangan>& daftarRuangan, time_t mulai, time_t selesai) {
+    cout << "List ruangan tersedia dari " << formatHourMinute(mulai) << " sampai " << formatHourMinute(selesai) << ",\npada tanggal " << formatDate(mulai) << ":" << endl;
+    cout << "---" << endl;
+    bool found = false;
+    for (const auto& pair : daftarRuangan) {
+        if (pair.second.cekKetersediaan(mulai, selesai)) {
+            cout << "ID: " << pair.second.getId() << ", Nama: " << pair.second.getNamaRuangan() << endl;
+            found = true;
+        }
+    }
+    if (!found) {
+        cout << "Tidak ada." << endl;
+    }
+    cout << "---" << endl;
 }
 
 int main (){
@@ -134,10 +150,11 @@ int main (){
     while (true) {
         cout << "\n" << GREEN << "Menu:" << RESET << endl;
         cout << GREEN << "1. Lihat List Ruangan" << RESET  << endl;
-        cout << GREEN << "2. Search Jadwal Ruangan" << RESET  << endl;
+        cout << GREEN << "2. Search Jadwal dari Ruangan" << RESET  << endl;
+        cout << GREEN << "3. Search Jadwal dari Waktu" << RESET << endl;
 
         int choice;
-        cout << GREEN << "Pilih menu (1-2): " << RESET;
+        cout << GREEN << "Pilih menu (1-3): " << RESET;
         if (!(cin >> choice)) {
             cout << endl;
             cout << RED << "ERR: Input harus angka." << RESET << endl;
@@ -157,6 +174,24 @@ int main (){
             }
             case 2: {
                 searchJadwalRuangan(daftarRuangan);
+                break;
+            }
+            case 3: {
+                int thn, bln, hari, jamMulai, menitMulai, jamSelesai, menitSelesai;
+                cout << "Tanggal (YYYY MM DD)\t: ";
+                cin >> thn >> bln >> hari;
+
+                cout << "Waktu mulai (HH MM)\t: ";
+                cin >> jamMulai >> menitMulai;
+                time_t mulai = makeTime(thn, bln, hari, jamMulai, menitMulai);
+
+                cout << "Waktu selesai (HH MM)\t: ";
+                cin >> jamSelesai >> menitSelesai;
+                time_t selesai = makeTime(thn, bln, hari, jamSelesai, menitSelesai);
+
+                cout << endl;
+
+                searchRuanganTersedia(daftarRuangan, mulai, selesai);
                 break;
             }
             default:
