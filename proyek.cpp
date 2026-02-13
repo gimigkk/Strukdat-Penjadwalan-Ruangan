@@ -1,5 +1,13 @@
+// note untuk struktur datanya:
+// Ruangan punya daftar jadwal
+// Jadwal punya waktu mulai, waktu selesai, nama kegiatan, id
+// Ruangan di simpen pake hashmap biar gampang aksesnya O(1)
+// Key di hashmap itu id ruangan.
+
 #include <bits/stdc++.h>
+#include "utils.h" 
 using namespace std;
+
 
 class Jadwal {
     private:
@@ -39,4 +47,48 @@ class Ruangan {
             // berarti gada yang overlap
             return true;
         }
+
+        string getId() const { return id; }
+        string getNamaRuangan() const { return namaRuangan; }
 };
+
+// runtime storage kita
+// buat presistent storage kita simpen di file
+// tapi pikirin lagi karena gw ga kepikiran.
+unordered_map<string, Ruangan> daftarRuangan;
+
+int main (){
+    // Fake data buat mempermudah testing
+    Ruangan r1("Ruang A", "R001");
+    Ruangan r2("Ruang B", "R002");
+
+    daftarRuangan[r1.getId()] = r1;
+    daftarRuangan[r2.getId()] = r2;
+
+    // contoh implementasi bikin jadwal di suatu ruangan
+    time_t mulai = makeTime(2026, 2, 14, 9, 0);
+    time_t selesai = makeTime(2026, 2, 14, 10, 0);
+
+    // bikin jadwal pake constructor.
+    Jadwal j1(mulai, selesai, "Meeting Tim", "J001"); 
+
+    // cek ketersediaan ruangan pake id ruangan sebagai key map.
+    // inset juga pake id ruangan.
+
+    // Cek dulu pakai find()
+    if (daftarRuangan.find("R001") != daftarRuangan.end()) {
+        // Kalau ada, baru pakai []
+        if (daftarRuangan["R001"].cekKetersediaan(mulai, selesai)) {
+            daftarRuangan["R001"].tambahJadwal(j1);
+            cout << "Jadwal berhasil ditambahkan." << endl;
+        } 
+        else {
+            cout << "ERR: Jadwal overlap." << endl;
+        }
+    } 
+    else {
+        cout << "ERR: Ruangan tidak ditemukan." << endl;
+    }
+
+    // ngerti ga?
+}
