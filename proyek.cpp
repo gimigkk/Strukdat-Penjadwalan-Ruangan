@@ -126,6 +126,14 @@ void searchRuanganTersedia(const unordered_map<string, Ruangan>& daftarRuangan) 
     cout << "---" << endl;
 }
 
+// Print semua ruangan
+void printAllRuangan() {
+    cout << "Daftar Ruangan:" << endl;
+    for (const auto& pair : daftarRuangan) {
+        cout << "ID: " << pair.second.getId() << ", Nama: " << pair.second.getNamaRuangan() << endl;
+    }
+}
+
 int main (){
     // Fake data buat mempermudah testing
     Ruangan r1("Ruang A", "R001");
@@ -180,10 +188,7 @@ int main (){
 
         switch(choice) {
             case 1: {
-                cout << "Daftar Ruangan:" << endl;
-                for (const auto& pair : daftarRuangan) {
-                    cout << "ID: " << pair.second.getId() << ", Nama: " << pair.second.getNamaRuangan() << endl;
-                }
+                printAllRuangan();
                 break;
             }
             case 2: {
