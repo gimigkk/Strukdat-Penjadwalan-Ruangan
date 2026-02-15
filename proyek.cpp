@@ -52,7 +52,6 @@ class Ruangan {
         string namaRuangan;
         string id;
         unordered_map<string, Jadwal> daftarJadwal;
-        unordered_map<string, Jadwal> daftarJadwal;
 
     public:
         Ruangan() : namaRuangan(" "), id(" ") {}
@@ -378,7 +377,7 @@ int main (){
                 break;
             }
             case 0: {
-                cout << "Byeeee!" << endl;
+                cout << "\nByeeee!" << endl;
                 return 0;
             }
             default:
@@ -386,7 +385,6 @@ int main (){
                 break;
         }
     }
-    cout << "\nSelesai" <<RESET<< endl;
 
     return 0;
 }
