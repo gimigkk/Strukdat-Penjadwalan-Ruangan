@@ -178,6 +178,7 @@ int main (){
         cout << GREEN << "1. Lihat List Ruangan" << RESET  << endl;
         cout << GREEN << "2. Search Jadwal dari Ruangan" << RESET  << endl;
         cout << GREEN << "3. Search Jadwal dari Waktu" << RESET << endl;
+        cout << GREEN << "0. Exit" << RESET << endl;
 
         int choice;
         cout << GREEN << "Pilih menu (1-3): " << RESET;
@@ -202,6 +203,10 @@ int main (){
             case 3: {
                 searchRuanganTersedia(daftarRuangan);
                 break;
+            }
+            case 0: {
+                cout << "Byeeee!" << endl;
+                return 0;
             }
             default:
                 cout << "Pilihan tidak valid. Silakan coba lagi." << endl;
