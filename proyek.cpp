@@ -17,11 +17,13 @@ class Jadwal {
         string id;
 
     public:
+        Jadwal() : mulai(0), selesai(0), namaKegiatan(""), id("") {}
         Jadwal(time_t m, time_t s, string n, string i) : mulai(m), selesai(s), namaKegiatan(n), id(i) {}
         
         // ini buat keperluan cek jadwal overlap
         time_t getMulai() const { return mulai; }
         time_t getSelesai() const { return selesai; }
+        string getId() const { return id; }
 
         string getNamaKegiatan() const {
             return namaKegiatan;
@@ -33,18 +35,19 @@ class Ruangan {
     private:
         string namaRuangan;
         string id;
-        vector<Jadwal> daftarJadwal;
+        unordered_map<string, Jadwal> daftarJadwal;
 
     public:
         Ruangan() : namaRuangan(" "), id(" ") {}
         Ruangan(string n, string i) : namaRuangan(n), id(i) {}
         
         void tambahJadwal(const Jadwal& j) {
-            daftarJadwal.push_back(j);
+            daftarJadwal[j.getId()] = j;
         }
         
         bool cekKetersediaan(time_t mulai, time_t selesai) const {
-            for (const auto& j : daftarJadwal) {
+            for (const auto& pair : daftarJadwal) {
+                const Jadwal& j = pair.second;
                 // Check overlap: jika tidak -> (selesai sebelum mulai OR mulai setelah selesai) -> berarti ada overlap
                 if (!(selesai <= j.getMulai() || mulai >= j.getSelesai())) {
                     return false;
@@ -65,7 +68,8 @@ class Ruangan {
 
             cout << "Jadwal Ruangan: "<< getNamaRuangan() << endl;
             cout << "---" << endl;
-            for (const auto& it : daftarJadwal) {
+            for (const auto& pair : daftarJadwal) {
+                const Jadwal& it = pair.second;
                 cout << "Kegiatan\t: " << it.getNamaKegiatan() << endl;
                 cout << "Jam Mulai\t: " << formatTime(it.getMulai()) << endl;
                 cout << "Jam Selesai\t: " << formatTime(it.getSelesai()) << endl;
