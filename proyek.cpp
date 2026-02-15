@@ -161,6 +161,7 @@ void printAllRuangan() {
 
 // Ganti tipe fungsi ke string
 string searchJadwalRuangan(const unordered_map<string, Ruangan>& daftarRuangan) { 
+    printAllRuangan(); cout << endl;
     string searchId;
     cout << ">> Masukkan ID Ruangan yang ingin dicari: ";
     cin >> searchId;
