@@ -461,6 +461,12 @@ int main (){
         cout << RED << "0. Selesai" << RESET <<RESET<< endl;
 
         int choice;
+
+        if(choice == 0) {
+            break;
+        }
+
+
         cout << GREEN << "Pilih menu (0-4): " << RESET;
         if (!(cin >> choice)) {
             cout <<RESET<< endl;
@@ -489,16 +495,14 @@ int main (){
                 ubahJadwal(daftarRuangan);
                 break;
             }
-            case 0: {
-                writeJson(file);
-                cout << "\nByeeee!" << endl;
-                return 0;
-            }
             default:
                 cout << "Pilihan tidak valid. Silakan coba lagi." <<RESET<< endl;
                 break;
         }
     }
+    
+    cout << "\nByeeee!" << endl;
+    writeJson(file);
 
     return 0;
 }
