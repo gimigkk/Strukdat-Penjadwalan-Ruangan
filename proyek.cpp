@@ -6,7 +6,10 @@
 
 #include <bits/stdc++.h>
 #include "utils.h" 
+#include <nlohmann/json.hpp>
+
 using namespace std;
+using json = nlohmann::json;
 
 
 class Jadwal {
@@ -24,6 +27,10 @@ class Jadwal {
         time_t getMulai() const { return mulai; }
         time_t getSelesai() const { return selesai; }
         string getId() const { return id; }
+
+        void setId(string& newId) {
+            id = newId;
+        }
 
         string getNamaKegiatan() const {
             return namaKegiatan;
@@ -59,11 +66,14 @@ class Ruangan {
 
         string getId() const { return id; }
         string getNamaRuangan() const { return namaRuangan; }
-        unordered_map<string, Jadwal> getJadwal() {
+
+        unordered_map<string, Jadwal>& getJadwal() {
             return daftarJadwal;
         }
         
-        void tambahJadwal(const Jadwal& j) {
+        void tambahJadwal(Jadwal j) {
+            string newId = makeUniqueJadwalId(j.getIdJadwal());
+            j.setId(newId);
             daftarJadwal.insert({j.getIdJadwal(), j});
         }
 
@@ -142,12 +152,95 @@ class Ruangan {
         // Update ruangan
         void ubahRuangan(string idRuanganLama, string idRuanganBaru, string idJadwal); 
 
+        // Cek konflik id buat update jadwal
+        bool hasJadwalId(string& idJadwal);
+        string makeUniqueJadwalId(string baseId);
+
 };
+
 
 // runtime storage kita
 // buat presistent storage kita simpen di file
 // tapi pikirin lagi karena gw ga kepikiran.
 unordered_map<string, Ruangan> daftarRuangan;
+
+// Calvin:
+// Persistent storagenya pakai data.json 
+// Di sini, rencananya : load at start, save at exit
+// Perubahan data disimpen di hash map dulu
+// Nanti data.json nya tinggal di overwrite pake data terbaru dari hash map
+
+// Fungsi buat read JSON
+void readJson(string& file) {
+    json data;
+    ifstream File(file);
+
+    if(!File.is_open()) {
+        cout << RED << "File not found" << endl;
+        return;
+    } 
+    // Parse 
+    File >> data;
+    File.close();
+
+    // Bersihin runtime storage
+    daftarRuangan.clear();
+
+    // Masukkin ke map
+    for(auto& ruangan : data["ruangan"]) {
+        string id = ruangan["id"];
+        string namaRuangan = ruangan["namaRuangan"];
+
+        Ruangan dataRuangan(namaRuangan, id);
+
+        for(auto& jadwal : ruangan["jadwal"]) {
+            string id = jadwal["id"];
+            string namaKegiatan = jadwal["namaKegiatan"];
+            time_t mulai = jadwal["mulai"];
+            time_t selesai = jadwal["selesai"];
+
+            Jadwal dataJadwal(mulai, selesai, namaKegiatan, id);
+            dataRuangan.tambahJadwal(dataJadwal);
+        }
+        daftarRuangan.insert({dataRuangan.getId(), dataRuangan});
+    }
+}
+
+// Buat masukkin data ke json
+void writeJson(string& file) {
+    json data;
+
+    // Bikin array of ruangan
+    data["ruangan"] = json::array();
+    for(auto& r : daftarRuangan) {
+        Ruangan& ruangan = r.second;
+        json dr; // data ruangan
+
+        dr["id"] = ruangan.getId();
+        dr["namaRuangan"] = ruangan.getNamaRuangan();
+
+        // bikin array of jadwal
+        dr["jadwal"] = json::array();
+
+        for(auto& j: ruangan.getJadwal()) {
+            Jadwal& jadwal = j.second;
+            
+            json dj; // data jadwal
+
+            dj["id"] = jadwal.getIdJadwal();
+            dj["namaKegiatan"] = jadwal.getNamaKegiatan();
+            dj["mulai"] = jadwal.getMulai();
+            dj["selesai"] = jadwal.getSelesai();
+
+            dr["jadwal"].push_back(dj);
+        }
+        data["ruangan"].push_back(dr);
+
+    }
+    // Write dengan ditruncate dlu 
+    ofstream File(file, ios::trunc); 
+    File << data.dump(4);
+}
 
 // Print semua ruangan
 void printAllRuangan() {
@@ -208,6 +301,22 @@ void searchRuanganTersedia(const unordered_map<string, Ruangan>& daftarRuangan) 
     cout << "---" <<RESET<< endl;
 }
 
+bool Ruangan::hasJadwalId(string& idJadwal) {
+    return daftarJadwal.find(idJadwal) != daftarJadwal.end();
+}
+
+string Ruangan::makeUniqueJadwalId(string baseId) {
+    if (!hasJadwalId(baseId)) return baseId;
+
+    // J001 -> J001_2, J001_3, ...
+    for (int i = 2; ; i++) {
+        string candidate = baseId + "_" + to_string(i);
+        if (!hasJadwalId(candidate)) {
+            return candidate;
+        }
+    }
+}
+
 void Ruangan::ubahRuangan(string idRuanganLama, string idRuanganBaru, string idJadwal) {
     auto itJadwal = daftarJadwal.find(idJadwal);
     auto itRuanganLama = daftarRuangan.find(idRuanganLama);
@@ -235,7 +344,6 @@ void ubahJadwal(unordered_map<string, Ruangan>& daftarRuangan) {
     time_t mulai;
     time_t selesai;
     cout << '\n' << GREEN << "UPDATE JADWAL" << RESET<< endl;   
-    printAllRuangan(); cout << endl;
     targetIdRuangan = searchJadwalRuangan(daftarRuangan);
     
     if(targetIdRuangan == " ") {
@@ -244,6 +352,7 @@ void ubahJadwal(unordered_map<string, Ruangan>& daftarRuangan) {
     }
 
     unordered_map<string, Jadwal> dataJadwal = daftarRuangan[targetIdRuangan].getJadwal();
+
     if(dataJadwal.empty()) {
         return;
     }
@@ -303,36 +412,42 @@ void ubahJadwal(unordered_map<string, Ruangan>& daftarRuangan) {
 }
 
 int main (){
-    // Fake data buat mempermudah testing
-    Ruangan r1("Ruang A", "R001");
-    Ruangan r2("Ruang B", "R002");
+    // Akses json
+    string file = "data.json";
 
-    daftarRuangan.insert({{r1.getId(), r1}, {r2.getId(), r2}});
+    readJson(file);
 
-    // contoh implementasi bikin jadwal di suatu ruangan
-    time_t mulai = makeTime(2026, 2, 14, 9, 0);
-    time_t selesai = makeTime(2026, 2, 14, 10, 0);
+    // // Fake data buat mempermudah testing
+    // Ruangan r1("Ruang A", "R001");
+    // Ruangan r2("Ruang B", "R002");
 
-    // bikin jadwal pake constructor.
-    Jadwal j1(mulai, selesai, "Meeting Tim", "J001"); 
+    // daftarRuangan.insert({{r1.getId(), r1}, {r2.getId(), r2}});
 
-    // cek ketersediaan ruangan pake id ruangan sebagai key map.
-    // inset juga pake id ruangan.
+    // // contoh implementasi bikin jadwal di suatu ruangan
+    // time_t mulai = makeTime(2026, 2, 14, 9, 0);
+    // time_t selesai = makeTime(2026, 2, 14, 10, 0);
 
-    // Cek dulu pakai find()
-    if (daftarRuangan.find("R002") != daftarRuangan.end()) {
-        // Kalau ada, baru pakai []
-        if (daftarRuangan["R002"].cekKetersediaan(mulai, selesai)) {
-            daftarRuangan["R002"].tambahJadwal(j1);
-            cout << CYAN <<  "Jadwal berhasil ditambahkan." <<RESET<< endl;
-        } 
-        else {
-            cout << RED << "ERR: Jadwal overlap." << RESET << endl;
-        }
-    } 
-    else {
-        cout << RED << "ERR: Ruangan tidak ditemukan." << RESET << endl;
-    }
+    // // bikin jadwal pake constructor.
+    // Jadwal j1(mulai, selesai, "Meeting Tim", "J001"); 
+
+    // // cek ketersediaan ruangan pake id ruangan sebagai key map.
+    // // inset juga pake id ruangan.
+
+    // // Cek dulu pakai find()
+    // if (daftarRuangan.find("R002") != daftarRuangan.end()) {
+    //     // Kalau ada, baru pakai []
+    //     if (daftarRuangan["R002"].cekKetersediaan(mulai, selesai)) {
+    //         daftarRuangan["R002"].tambahJadwal(j1);
+    //         cout << CYAN <<  "Jadwal berhasil ditambahkan." <<RESET<< endl;
+    //     } 
+    //     else {
+    //         cout << RED << "ERR: Jadwal overlap." << RESET << endl;
+    //     }
+
+    // } 
+    // else {
+    //     cout << RED << "ERR: Ruangan tidak ditemukan." << RESET << endl;
+    // }
 
     // ngerti ga?
 
@@ -355,9 +470,6 @@ int main (){
             continue;
         }
 
-        if (choice == 0) {
-            break;
-        }
         cout <<RESET<< endl;
 
         switch(choice) {
@@ -378,6 +490,7 @@ int main (){
                 break;
             }
             case 0: {
+                writeJson(file);
                 cout << "\nByeeee!" << endl;
                 return 0;
             }

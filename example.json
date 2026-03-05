@@ -1,0 +1,16 @@
+{
+  "ruangan": [
+    {
+      "id": "R001",
+      "namaRuangan": "Ruang A",
+      "jadwal": [
+        {
+          "id": "J001",
+          "namaKegiatan": "Meeting Tim",
+          "mulai": 1707891600,
+          "selesai": 1707895200
+        }
+      ]
+    }
+  ]
+}
