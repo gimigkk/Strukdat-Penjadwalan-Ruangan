@@ -75,8 +75,8 @@ class Ruangan {
             daftarJadwal[j.getIdJadwal()] = j;
         }
 
-        void hapusJadwalById(const string& idJadwal) {
-            daftarJadwal.erase(idJadwal);
+        bool hapusJadwalById(const string& idJadwal) {
+            return daftarJadwal.erase(idJadwal) > 0;
         }
         
         bool cekKetersediaan(time_t mulai, time_t selesai, const string& ignoreIdJadwal = "") const {
@@ -528,7 +528,7 @@ void ubahJadwal(unordered_map<string, Ruangan>& daftarRuangan) {
     cout << '\n' << GREEN << "UPDATE JADWAL" << RESET<< endl;   
     targetIdRuangan = searchJadwalRuangan(daftarRuangan);
     
-    if(targetIdRuangan == " ") {
+    if(targetIdRuangan.empty()) {
         cout << "Maaf, ruangan tidak ditemukan." << endl;
         return;
     }
@@ -603,7 +603,7 @@ void hapusJadwal(unordered_map<string, Ruangan>& daftarRuangan) {
     cout << '\n' << GREEN << "HAPUS JADWAL" << RESET<< endl;   
     targetIdRuangan = searchJadwalRuangan(daftarRuangan);
     
-    if(targetIdRuangan == " ") {
+    if(targetIdRuangan.empty()) {
         cout << "Maaf, ruangan tidak ditemukan." << endl;
         return;
     }
@@ -618,8 +618,12 @@ void hapusJadwal(unordered_map<string, Ruangan>& daftarRuangan) {
     cin >> targetIdJadwal;
 
     auto it = daftarRuangan.find(targetIdRuangan);
-    it->second.hapusJadwalById(targetIdJadwal);
-    cout << CYAN << "\nJadwal dengan ID " << targetIdJadwal << " di ruangan " << daftarRuangan[targetIdRuangan].getNamaRuangan() << " berhasil dihapus." << RESET << endl;
+    if(it->second.hapusJadwalById(targetIdJadwal)) {
+        cout << CYAN << "\nJadwal dengan ID " << targetIdJadwal << " di ruangan " << it->second.getNamaRuangan() << " berhasil dihapus." << RESET << endl;
+    } 
+    else {
+        cout << RED << "\nID jadwal tidak ditemukan." << RESET << endl;
+    }
 }
 
 int main (){
