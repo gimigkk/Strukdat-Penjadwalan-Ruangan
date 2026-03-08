@@ -79,7 +79,7 @@ void searchJadwalByTime(const map<string, Ruangan>& daftarRuangan) {
     cin >> jamMulai >> menitMulai;
     time_t mulai = makeTime(thn, bln, hari, jamMulai, menitMulai);
 
-    cout << ">> Waktu selesai (HH MM)\t: ";
+    cout << ">> Waktu selesai (HH MM): ";
     cin >> jamSelesai >> menitSelesai;
     time_t selesai = makeTime(thn, bln, hari, jamSelesai, menitSelesai);
 

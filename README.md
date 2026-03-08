@@ -4,9 +4,9 @@
 
 Proyek ini mengimplementasikan sistem manajemen jadwal penggunaan ruang (seperti ruang rapat, ruang kelas, atau coworking space). Sistem ini bertujuan untuk membantu organisasi mengelola penggunaan ruang secara efisien serta mendeteksi konflik jadwal secara otomatis.
 
-Pada implementasi ini, data jadwal disimpan dalam **struktur data hash map (`unordered_map`)** untuk memastikan operasi pencarian, update, dan penghapusan dapat dilakukan secara cepat dengan kompleksitas waktu rata-rata **O(1)**.
+Pada implementasi ini, data jadwal disimpan dalam **struktur data `map`** untuk memastikan operasi pencarian, update, dan penghapusan dapat dilakukan secara cepat dengan kompleksitas waktu **O(log n)**, sekaligus menjamin urutan data yang konsisten saat disimpan ke file JSON.
 
-Untuk penyimpanan permanen (persistent storage), sistem menggunakan **file JSON (`data.json`)**. Saat program dijalankan, data dari JSON akan dimuat ke dalam memori, kemudian semua operasi sistem dilakukan pada struktur data di memori. Ketika program selesai, data terbaru akan disimpan kembali ke file JSON.
+Untuk penyimpanan permanen (persistent storage), sistem menggunakan **file JSON (`dummy.json`)**. Saat program dijalankan, data dari JSON akan dimuat ke dalam memori, kemudian semua operasi sistem dilakukan pada struktur data di memori. Ketika program selesai, data terbaru akan disimpan kembali ke file JSON.
 
 ---
 
@@ -17,24 +17,46 @@ Sistem menggunakan pendekatan **runtime in-memory database + persistent JSON sto
 Alur data sistem:
 
 ```
-data.json (persistent storage)
+dummy.json (persistent storage)
         ↓
 readJson()
         ↓
-unordered_map<string, Ruangan>   ← runtime database
+map<string, Ruangan>   ← runtime database
         ↓
 Operasi sistem (insert, update, delete, search)
         ↓
 writeJson()
         ↓
-data.json diperbarui
+dummy.json diperbarui
 ```
 
 Keuntungan pendekatan ini:
 
-- Operasi data sangat cepat selama runtime
+- Operasi data cepat selama runtime
+- Urutan data konsisten di JSON karena `map` auto-sorted by key
 - Penyimpanan data tetap tersedia setelah program ditutup
-- Struktur kode lebih modular dan mudah diperluas
+- Struktur kode modular dan mudah diperluas
+
+---
+
+# Struktur File
+
+```
+proyek/
+├── main.cpp               — entry point, program loop
+├── globals.h              — runtime storage & ID generation
+├── utils.h                — helper functions (time formatting, input)
+├── models/
+│   ├── Jadwal.h           — class Jadwal
+│   └── Ruangan.h          — class Ruangan
+├── storage/
+│   └── Storage.h          — readJson, writeJson, tambahJadwalBaru, ubahRuangan
+├── ui/
+│   └── Menu.h             — semua fungsi display & pagination
+├── actions/
+│   └── Actions.h          — semua operasi CRUD
+└── dummy.json             — persistent storage
+```
 
 ---
 
@@ -42,17 +64,17 @@ Keuntungan pendekatan ini:
 
 ## 1. Ruangan
 
-Setiap ruangan memiliki kumpulan jadwal yang disimpan menggunakan hash map.
+Setiap ruangan memiliki kumpulan jadwal yang disimpan menggunakan `map`.
 
 ```
 Ruangan
 │
 ├── idRuangan
 ├── namaRuangan
-└── daftarJadwal (unordered_map<string, Jadwal>)
+└── daftarJadwal (map<string, Jadwal>)
 ```
 
-Hash map digunakan agar pencarian jadwal berdasarkan ID dapat dilakukan dengan cepat.
+`map` digunakan agar jadwal tersimpan terurut by ID dan pencarian tetap efisien O(log n).
 
 ---
 
@@ -65,15 +87,15 @@ Jadwal
 │
 ├── idJadwal
 ├── namaKegiatan
-├── waktuMulai
-└── waktuSelesai
+├── waktuMulai (Unix timestamp)
+└── waktuSelesai (Unix timestamp)
 ```
 
 ---
 
 # Penyimpanan Data (JSON)
 
-Data disimpan dalam file `data.json` dengan struktur berikut:
+Data disimpan dalam file `dummy.json` dengan struktur berikut:
 
 ```json
 {
@@ -83,17 +105,12 @@ Data disimpan dalam file `data.json` dengan struktur berikut:
       "namaRuangan": "Ruang A",
       "jadwal": [
         {
-          "id": "J001",
+          "id": "J000001",
           "namaKegiatan": "Meeting Tim",
           "mulai": 1771129800,
           "selesai": 1771133400
         }
       ]
-    },
-    {
-      "id": "R002",
-      "namaRuangan": "Ruang B",
-      "jadwal": []
     }
   ]
 }
@@ -102,7 +119,7 @@ Data disimpan dalam file `data.json` dengan struktur berikut:
 ### Keterangan Field
 
 | Field | Deskripsi |
-|------|------|
+|---|---|
 | `id` | ID unik ruang |
 | `namaRuangan` | Nama ruang |
 | `jadwal` | Daftar jadwal pada ruang tersebut |
@@ -110,48 +127,25 @@ Data disimpan dalam file `data.json` dengan struktur berikut:
 | `mulai` | Waktu mulai (Unix timestamp) |
 | `selesai` | Waktu selesai (Unix timestamp) |
 
+Karena `map` auto-sorted, urutan ruangan dan jadwal di JSON selalu konsisten — git diff tetap bersih meskipun program dijalankan berulang kali tanpa perubahan data.
+
 ---
 
 # Mekanisme Load & Save JSON
 
-## Load Data
+## Load Data (`readJson`)
 
-Saat program dimulai, sistem memuat data dari JSON menggunakan fungsi:
-
-```
-readJson()
-```
-
-Langkah-langkah:
-
-1. Membaca file `data.json`
+1. Membaca file `dummy.json`
 2. Parsing JSON menggunakan library **nlohmann/json**
 3. Mengonversi data JSON menjadi objek `Ruangan` dan `Jadwal`
-4. Menyimpannya ke dalam `unordered_map`
+4. Menyimpannya ke dalam `map<string, Ruangan>`
+5. Menentukan `globalJadwalCounter` berdasarkan ID jadwal tertinggi
 
----
+## Save Data (`writeJson`)
 
-## Save Data
-
-Saat program selesai, data terbaru disimpan kembali menggunakan fungsi:
-
-```
-writeJson()
-```
-
-Langkah-langkah:
-
-1. Mengambil seluruh data dari `unordered_map`
+1. Mengambil seluruh data dari `map` (sudah terurut)
 2. Mengonversinya kembali menjadi format JSON
-3. Menulis ulang file `data.json`
-
-File ditulis menggunakan mode:
-
-```
-ios::trunc
-```
-
-yang memastikan file lama dihapus sebelum data baru ditulis.
+3. Menulis ulang file menggunakan `ios::trunc`
 
 ---
 
@@ -161,102 +155,118 @@ Konflik jadwal dideteksi menggunakan pengecekan interval waktu sederhana.
 
 Dua jadwal dianggap konflik jika interval waktunya **tumpang tindih**.
 
-Logika yang digunakan:
-
 ```cpp
 if (!(selesaiBaru <= mulaiLama || mulaiBaru >= selesaiLama))
-    konflik
+    // konflik
 ```
 
-Jika kondisi tersebut terpenuhi, maka jadwal baru tidak dapat ditambahkan.
-
-Kompleksitas waktu deteksi konflik:
-
-```
-O(n)
-```
-
-dengan `n` adalah jumlah jadwal pada ruangan tersebut.
+Kompleksitas deteksi konflik: **O(n)** dengan `n` = jumlah jadwal pada ruangan tersebut.
 
 ---
 
 # Fitur Sistem
 
-Sistem menyediakan fitur berikut:
+## 1. Browsing List Ruangan
+Menampilkan semua ruangan dengan pagination responsif. Jumlah kolom menyesuaikan lebar terminal. Navigasi menggunakan arrow key atau N/P/Q.
 
-## 1. Insert Jadwal
-Menambahkan jadwal baru ke ruangan tertentu dengan pengecekan konflik waktu.
+## 2. Tambah Jadwal
+Menambahkan jadwal baru ke ruangan tertentu dengan pengecekan konflik waktu otomatis. Input tanggal mendukung shortcut `T` untuk hari ini.
 
-## 2. Search Jadwal
+## 3. Search Jadwal dari Ruangan
+Menampilkan semua jadwal pada ruangan tertentu dengan pagination. Jadwal ditampilkan dari terbaru ke terlama. Jadwal yang sudah lewat ditampilkan abu-abu.
 
-Pencarian jadwal dapat dilakukan berdasarkan:
+## 4. Search Jadwal berdasarkan Waktu
+Mencari semua jadwal yang aktif (overlap) dalam rentang waktu tertentu lintas semua ruangan. Hasil ditampilkan dengan pagination.
 
-- ID ruangan
-- rentang waktu tertentu
+## 5. Search Ruangan Tersedia
+Mencari semua ruangan yang tidak memiliki konflik pada rentang waktu tertentu. Hasil ditampilkan dengan pagination responsif.
 
-## 3. Update Jadwal
+## 6. Update Jadwal
+Memperbarui jadwal yang sudah ada, meliputi:
+- Waktu mulai & selesai
+- Nama kegiatan
+- Perpindahan ruangan
 
-Data jadwal dapat diperbarui, termasuk:
-
-- waktu mulai
-- waktu selesai
-- nama kegiatan
-- perpindahan ruangan
-
-## 4. Delete Jadwal
-
-Jadwal dapat dihapus menggunakan ID jadwal.
-
-## 5. Deteksi Konflik
-
-Sistem secara otomatis menolak jadwal baru yang memiliki konflik waktu dengan jadwal yang sudah ada pada ruangan yang sama.
-
-## 6. Auto-Rename ID Jadwal
-
-Jika ID jadwal yang dimasukkan sudah ada, sistem akan otomatis mengganti ID menjadi format berikut:
-
-```
-J001 → J001_2 → J001_3 → ...
-```
-
-Hal ini memastikan setiap jadwal memiliki ID unik tanpa mengganggu pengguna.
+## 7. Hapus Jadwal
+Menghapus jadwal berdasarkan ID.
 
 ---
 
 # Kompleksitas Operasi
 
 | Operasi | Kompleksitas |
-|------|------|
-| Insert Jadwal | O(1) rata-rata |
-| Delete Jadwal | O(1) rata-rata |
-| Search Jadwal | O(1) rata-rata |
+|---|---|
+| Insert Jadwal | O(log n) |
+| Delete Jadwal | O(log n) |
+| Search Jadwal by ID | O(log n) |
 | Deteksi Konflik | O(n) |
 | Load JSON | O(N) |
 | Save JSON | O(N) |
 
-`N` adalah jumlah total jadwal dalam sistem.
+`n` = jumlah jadwal per ruangan, `N` = total jadwal dalam sistem.
+
+---
+
+# Sistem Pagination & Navigasi
+
+Karena data ruangan dan jadwal bisa sangat banyak (ratusan hingga ribuan), sistem menggunakan pagination responsif pada semua fitur yang menampilkan list data.
+
+## Cara Kerja
+
+Jumlah item per halaman dihitung otomatis berdasarkan ukuran terminal yang dideteksi saat runtime menggunakan `sys/ioctl`:
+
+```cpp
+auto [termCols, termRows] = getTerminalSize();
+int PAGE_SIZE = (termRows - 5) * cols;
+```
+
+Jumlah kolom juga menyesuaikan lebar terminal:
+
+| Lebar Terminal | Kolom |
+|---|---|
+| < 60 karakter | 1 kolom |
+| 60–119 karakter | 2 kolom |
+| ≥ 120 karakter | 3 kolom |
+
+## Navigasi
+
+Semua halaman pagination menggunakan raw mode (`termios`) agar input langsung terbaca tanpa perlu menekan Enter:
+
+| Tombol | Aksi |
+|---|---|
+| `→` / `↓` / `N` | Halaman berikutnya |
+| `←` / `↑` / `P` | Halaman sebelumnya |
+| `Q` | Keluar dari browser |
+
+## Fungsi Pagination
+
+| Fungsi | Digunakan untuk |
+|---|---|
+| `browseRuangan()` | Browsing semua ruangan (fitur 1) |
+| `browseJadwal()` | Jadwal dalam satu ruangan (fitur 3) |
+| `browseHasilSearch()` | Hasil search jadwal lintas ruangan (fitur 4) |
+| `browseHasilRuangan()` | Hasil search ruangan tersedia (fitur 5) |
+
+---
+
+
+
+```bash
+g++ -I. -std=c++17 main.cpp -o main && ./main
+```
+
+Pastikan folder `nlohmann/` berisi `json.hpp` ada di direktori yang sama dengan `main.cpp`.
 
 ---
 
 # Teknologi yang Digunakan
 
-- **C++**
-- **STL (Standard Template Library)**
-- **unordered_map**
-- **nlohmann/json** untuk parsing JSON (https://github.com/nlohmann/json/)
-- **Unix timestamp** untuk penyimpanan waktu
-
----
-
-# Dataset Awal
-
-Dataset awal menggunakan data simulasi yang disimpan pada file:
-
-```
-data.json
-```
-
-Dataset ini dapat diperluas untuk pengujian performa dengan jumlah jadwal yang lebih besar.
+- **C++17**
+- **STL** — `map`, `vector`, `tuple`, dll
+- **nlohmann/json** — parsing JSON (https://github.com/nlohmann/json/)
+- **Unix timestamp** — penyimpanan waktu
+- **termios** — raw mode untuk arrow key navigation
+- **sys/ioctl** — deteksi ukuran terminal untuk responsive layout
 
 ---
 
@@ -264,8 +274,7 @@ Dataset ini dapat diperluas untuk pengujian performa dengan jumlah jadwal yang l
 
 Untuk tahap akhir proyek, sistem akan diperluas dengan:
 
-- Implementasi **minimal dua struktur data berbeda**
-- Perbandingan performa antara struktur data
-- Visualisasi grafik waktu eksekusi
-- Analisis penggunaan memori
+- Implementasi **minimal dua struktur data berbeda** dan perbandingan performa
+- Grafik perbandingan waktu eksekusi & penggunaan memori
+- Analisis dampak pertumbuhan data terhadap performa
 - Rekomendasi struktur data terbaik untuk sistem manajemen jadwal
