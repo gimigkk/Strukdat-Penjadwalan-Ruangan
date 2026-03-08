@@ -3,10 +3,41 @@
 
 #include <bits/stdc++.h>
 #include <sys/ioctl.h>
+#include <termios.h>
 #include <unistd.h>
 #include "../globals.h"
 
 using namespace std;
+
+// buat raw mode biar input langsung kebaca tanpa nunggu Enter
+void enableRawMode(termios& orig) {
+    termios raw = orig;
+    raw.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+}
+
+void disableRawMode(termios& orig) {
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig);
+}
+
+// baca input keyboard, return 'n', 'p', 'q'
+// works buat arrow key maupun N/P/Q biasa
+int readKey() {
+    char c;
+    read(STDIN_FILENO, &c, 1);
+    if (c == '\033') {          // escape sequence, berarti arrow key
+        char seq[2];
+        read(STDIN_FILENO, &seq[0], 1);
+        read(STDIN_FILENO, &seq[1], 1);
+        if (seq[0] == '[') {
+            if (seq[1] == 'C') return 'n'; // right arrow → next
+            if (seq[1] == 'D') return 'p'; // left arrow  → prev
+            if (seq[1] == 'B') return 'n'; // down arrow  → next
+            if (seq[1] == 'A') return 'p'; // up arrow    → prev
+        }
+    }
+    return tolower(c);
+}
 
 // Print semua ruangan
 void printAllRuangan() {
@@ -71,9 +102,15 @@ void browseRuangan() {
         if ((end - start) % cols != 0) cout << endl;
 
         cout << string(termCols, '-') << endl;
-        cout << "[N] Next  [P] Prev  [Q] Quit >> ";
+        cout << GRAY << "[←/→/↑/↓] atau [N/P] Navigate  [Q] Quit" << RESET << endl;
+        cout.flush(); // flush dulu sebelum system("clear") di iterasi berikutnya
 
-        char c; cin >> c; c = tolower(c);
+        termios orig;
+        tcgetattr(STDIN_FILENO, &orig);
+        enableRawMode(orig);
+        int c = readKey();
+        disableRawMode(orig);
+
         if (c == 'n' && page < totalPages - 1) page++;
         else if (c == 'p' && page > 0) page--;
         else if (c == 'q') break;

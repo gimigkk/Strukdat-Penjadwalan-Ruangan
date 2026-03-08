@@ -10,6 +10,7 @@ using namespace std;
 #define CYAN "\033[36m"
 #define GREEN "\033[32m"
 #define RED "\033[31m"
+#define GRAY "\033[90m"
 
 // Membuat time_t dari input tahun, bulan, hari, jam, menit
 inline time_t makeTime(int year, int month, int day, int hour, int minute) {

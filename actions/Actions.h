@@ -15,7 +15,7 @@ void tambahJadwal(unordered_map<string, Ruangan>& daftarRuangan) {
     int jamSelesai, menitSelesai;
     string namaKegiatan;
 
-    printAllRuangan(); cout << endl;
+    cout << GRAY << "(Tidak tahu ID? Gunakan menu 1 untuk browse ruangan)" << RESET << endl;
     cout << ">> Masukkan ID ruangan: ";
     cin >> idRuangan;
 
@@ -55,7 +55,7 @@ void tambahJadwal(unordered_map<string, Ruangan>& daftarRuangan) {
 
 // Ganti tipe fungsi ke string
 string searchJadwalRuangan(const unordered_map<string, Ruangan>& daftarRuangan) { 
-    printAllRuangan(); cout << endl;
+    cout << GRAY << "(Tidak tahu ID? Gunakan menu 1 untuk browse ruangan)" << RESET << endl;
     string searchId;
     cout << ">> Masukkan ID Ruangan yang ingin dicari: ";
     cin >> searchId;
