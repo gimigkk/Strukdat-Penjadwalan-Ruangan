@@ -28,7 +28,7 @@ class Jadwal {
         time_t getSelesai() const { return selesai; }
         string getId() const { return id; }
 
-        void setId(string& newId) {
+        void setId(const string& newId) {
             id = newId;
         }
 
@@ -48,7 +48,7 @@ class Jadwal {
             selesai = s;
         }
 
-        void setNamaKegiatan(string nk) {
+        void setNamaKegiatan(const string& nk) {
             namaKegiatan = nk;
         }
 
@@ -58,7 +58,7 @@ class Ruangan {
     private:
         string namaRuangan;
         string id;
-        unordered_map<string, Jadwal> daftarJadwal;
+        map<string, Jadwal> daftarJadwal;
 
     public:
         Ruangan() : namaRuangan(" "), id(" ") {}
@@ -67,33 +67,33 @@ class Ruangan {
         string getId() const { return id; }
         string getNamaRuangan() const { return namaRuangan; }
 
-        unordered_map<string, Jadwal>& getJadwal() {
+        const map<string, Jadwal>& getJadwal() const{
             return daftarJadwal;
         }
         
-        void tambahJadwal(Jadwal j) {
-            string newId = makeUniqueJadwalId(j.getIdJadwal());
-            j.setId(newId);
-            daftarJadwal.insert({j.getIdJadwal(), j});
+        void tambahJadwal(const Jadwal& j) {
+            daftarJadwal[j.getIdJadwal()] = j;
         }
 
-        void hapusJadwalById(string idJadwal) {
+        void hapusJadwalById(const string& idJadwal) {
             daftarJadwal.erase(idJadwal);
         }
         
-        bool cekKetersediaan(time_t mulai, time_t selesai) const {
+        bool cekKetersediaan(time_t mulai, time_t selesai, const string& ignoreIdJadwal = "") const {
             for (const auto& j : daftarJadwal) {
-                Jadwal data = j.second;
-                // Check overlap: jika tidak -> (selesai sebelum mulai OR mulai setelah selesai) -> berarti ada overlap
+                const string& idJadwal = j.first;
+                const Jadwal& data = j.second;
+            
+                if (idJadwal == ignoreIdJadwal) continue;
+            
                 if (!(selesai <= data.getMulai() || mulai >= data.getSelesai())) {
                     return false;
                 }
             }
-            // berarti gada yang overlap
             return true;
         }
 
-        void printJadwal() const {
+        void printJadwal() const{
             cout << "Jadwal Ruangan: "<< getNamaRuangan() <<RESET<< endl;
             cout << "---" <<RESET<< endl;
 
@@ -103,7 +103,7 @@ class Ruangan {
             }
 
             for (const auto& it : daftarJadwal) {
-                Jadwal data = it.second;
+                const Jadwal& data = it.second;
                 cout << "ID Jadwal: "<< data.getIdJadwal() <<RESET<< endl;
                 cout << "Kegiatan\t: " << data.getNamaKegiatan() <<RESET<< endl;
                 cout << "Jam Mulai\t: " << formatTime(data.getMulai()) <<RESET<< endl;
@@ -114,16 +114,16 @@ class Ruangan {
         }
 
         // Update waktu sebuah jadwal
-        void ubahWaktu(string idJadwal, time_t m, time_t s) {
-            if(!cekKetersediaan(m, s)) {
-                cout << "\nMaaf, jadwal tidak tersedia." << endl;
-                return;
-            }
-            
+        void ubahWaktu(const string& idJadwal, time_t m, time_t s) {
 
             auto it = daftarJadwal.find(idJadwal);
             if(it == daftarJadwal.end()) {
                 cout << RED << "Data tidak ditemukan" << RESET << endl;
+                return;
+            }
+
+            if(!cekKetersediaan(m, s, idJadwal)) {
+                cout << RED << "\nMaaf, ruangan sudah terpakai." << RESET << endl;
                 return;
             }
 
@@ -135,7 +135,7 @@ class Ruangan {
         }
 
         // Update nama kegiatan sebuah jadwal
-        void ubahNamaKegiatan(string idJadwal, string nk) {
+        void ubahNamaKegiatan(const string& idJadwal, const string& nk) {
             auto it = daftarJadwal.find(idJadwal);
             if(it == daftarJadwal.end()) {
                 cout << RED << "Data tidak ditemukan" << RESET << endl;
@@ -150,11 +150,10 @@ class Ruangan {
         }
 
         // Update ruangan
-        void ubahRuangan(string idRuanganLama, string idRuanganBaru, string idJadwal); 
+        void ubahRuangan(const string& idRuanganLama, const string& idRuanganBaru, const string& idJadwal);
 
-        // Cek konflik id buat update jadwal
-        bool hasJadwalId(string& idJadwal);
-        string makeUniqueJadwalId(string baseId);
+        
+        void loadJadwal(const Jadwal& j);
 
 };
 
@@ -164,14 +163,38 @@ class Ruangan {
 // tapi pikirin lagi karena gw ga kepikiran.
 unordered_map<string, Ruangan> daftarRuangan;
 
+bool isJadwalIdExistGlobal(const string& idJadwal) {
+    for (const auto& pair : daftarRuangan) {
+        const auto& jadwalMap = pair.second.getJadwal();
+        if (jadwalMap.find(idJadwal) != jadwalMap.end()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+string makeUniqueJadwalIdGlobal(const string& baseId) {
+    if (!isJadwalIdExistGlobal(baseId)) return baseId;
+
+    for (int i = 2; ; i++) {
+        string candidate = baseId + "_" + to_string(i);
+        if (!isJadwalIdExistGlobal(candidate)) {
+            return candidate;
+        }
+    }
+}
+
 // Calvin:
 // Persistent storagenya pakai data.json 
 // Di sini, rencananya : load at start, save at exit
 // Perubahan data disimpen di hash map dulu
 // Nanti data.json nya tinggal di overwrite pake data terbaru dari hash map
 
+void Ruangan::loadJadwal(const Jadwal& j) {
+    daftarJadwal[j.getIdJadwal()] = j;
+}
 // Fungsi buat read JSON
-void readJson(string& file) {
+void readJson(const string& file) {
     json data;
     ifstream File(file);
 
@@ -200,14 +223,14 @@ void readJson(string& file) {
             time_t selesai = jadwal["selesai"];
 
             Jadwal dataJadwal(mulai, selesai, namaKegiatan, id);
-            dataRuangan.tambahJadwal(dataJadwal);
+            dataRuangan.loadJadwal(dataJadwal);
         }
         daftarRuangan.insert({dataRuangan.getId(), dataRuangan});
     }
 }
 
 // Buat masukkin data ke json
-void writeJson(string& file) {
+void writeJson(const string& file) {
     json data;
 
     // Bikin array of ruangan
@@ -223,7 +246,7 @@ void writeJson(string& file) {
         dr["jadwal"] = json::array();
 
         for(auto& j: ruangan.getJadwal()) {
-            Jadwal& jadwal = j.second;
+            const Jadwal& jadwal = j.second;
             
             json dj; // data jadwal
 
@@ -250,7 +273,6 @@ void printAllRuangan() {
     }
 }
 
-// Print semua jadwal dari ruangan tertentu
 
 // Ganti tipe fungsi ke string
 string searchJadwalRuangan(const unordered_map<string, Ruangan>& daftarRuangan) { 
@@ -266,8 +288,44 @@ string searchJadwalRuangan(const unordered_map<string, Ruangan>& daftarRuangan) 
         return searchId;
     } else {
         cout << "Ruangan dengan ID " << searchId << " tidak ditemukan." <<RESET<< endl;
-        return " ";
+        return "";
     }
+}
+
+void searchJadwalByTime(const unordered_map<string, Ruangan>& daftarRuangan) {
+    int thn, bln, hari, jamMulai, menitMulai;
+    cout << ">> Tanggal (YYYY MM DD)\t: ";
+    cin >> thn >> bln >> hari;
+
+    cout << ">> Waktu mulai (HH MM)\t: ";
+    cin >> jamMulai >> menitMulai;
+    time_t mulai = makeTime(thn, bln, hari, jamMulai, menitMulai);
+
+    cout <<RESET<< endl;
+
+    cout << "Jadwal yang dimulai pada " << formatHourMinute(mulai) << ",\npada tanggal " << formatDate(mulai) << ":" <<RESET<< endl;
+    cout << "---" <<RESET<< endl;
+    bool found = false;
+    for (const auto& pair : daftarRuangan) {
+        const auto& jadwalMap = pair.second.getJadwal();
+        for (const auto& jadwalPair : jadwalMap) {
+            const Jadwal& jadwal = jadwalPair.second;
+            if (jadwal.getMulai() == mulai) {
+                cout << "ID Ruangan\t: " << pair.second.getId() << endl;
+                cout << "Nama Ruangan\t: " << pair.second.getNamaRuangan() << endl;
+                cout << "ID Jadwal\t: " << jadwal.getIdJadwal() << endl;
+                cout << "Kegiatan\t: " << jadwal.getNamaKegiatan() << endl;
+                cout << "Jam Mulai\t: " << formatTime(jadwal.getMulai()) << endl;
+                cout << "Jam Selesai\t: " << formatTime(jadwal.getSelesai()) << endl;
+                found = true;
+            }
+        }
+    }
+    if (!found) {
+        cout << RED << "Tidak ada." <<RESET<< endl;
+    }
+    cout << "---" <<RESET<< endl;
+
 }
 
 // Cari ruangan yang tersedia pada waktu tertentu
@@ -284,40 +342,30 @@ void searchRuanganTersedia(const unordered_map<string, Ruangan>& daftarRuangan) 
     cin >> jamSelesai >> menitSelesai;
     time_t selesai = makeTime(thn, bln, hari, jamSelesai, menitSelesai);
 
+    if (mulai >= selesai) {
+        cout << RED << "Waktu tidak valid. Jam selesai harus setelah jam mulai." << RESET << endl;
+        return;
+    }   
+
     cout <<RESET<< endl;
 
     cout << "List ruangan tersedia dari " << formatHourMinute(mulai) << " sampai " << formatHourMinute(selesai) << ",\npada tanggal " << formatDate(mulai) << ":" <<RESET<< endl;
     cout << "---" <<RESET<< endl;
     bool found = false;
     for (const auto& pair : daftarRuangan) {
+        
         if (pair.second.cekKetersediaan(mulai, selesai)) {
             cout << "ID: " << pair.second.getId() << ", Nama: " << pair.second.getNamaRuangan() <<RESET<< endl;
             found = true;
         }
     }
     if (!found) {
-        cout << "Tidak ada." <<RESET<< endl;
+        cout << RED << "Tidak ada." <<RESET<< endl;
     }
     cout << "---" <<RESET<< endl;
 }
 
-bool Ruangan::hasJadwalId(string& idJadwal) {
-    return daftarJadwal.find(idJadwal) != daftarJadwal.end();
-}
-
-string Ruangan::makeUniqueJadwalId(string baseId) {
-    if (!hasJadwalId(baseId)) return baseId;
-
-    // J001 -> J001_2, J001_3, ...
-    for (int i = 2; ; i++) {
-        string candidate = baseId + "_" + to_string(i);
-        if (!hasJadwalId(candidate)) {
-            return candidate;
-        }
-    }
-}
-
-void Ruangan::ubahRuangan(string idRuanganLama, string idRuanganBaru, string idJadwal) {
+void Ruangan::ubahRuangan(const string& idRuanganLama, const string& idRuanganBaru, const string& idJadwal) {
     auto itJadwal = daftarJadwal.find(idJadwal);
     auto itRuanganLama = daftarRuangan.find(idRuanganLama);
     auto itRuanganBaru = daftarRuangan.find(idRuanganBaru);
@@ -328,7 +376,17 @@ void Ruangan::ubahRuangan(string idRuanganLama, string idRuanganBaru, string idJ
     Jadwal& dataJadwal = itJadwal->second;
     Ruangan& ruanganLama = itRuanganLama->second;
     Ruangan& ruanganBaru = itRuanganBaru->second;
-    
+
+    if (ruanganBaru.getJadwal().find(idJadwal) != ruanganBaru.getJadwal().end()) {
+        cout << "ID jadwal sudah ada di ruangan baru. Proses pembaruan dibatalkan.\n";
+        return;
+    }
+
+    if (!ruanganBaru.cekKetersediaan(dataJadwal.getMulai(), dataJadwal.getSelesai())) {
+        cout << "Ruangan baru tidak tersedia.\n";
+        return;
+    }  
+
     // Tambah jadwal di ruangan baru
     ruanganBaru.tambahJadwal(dataJadwal);
     // Hapus jadwal di ruangan lama
@@ -340,9 +398,7 @@ void Ruangan::ubahRuangan(string idRuanganLama, string idRuanganBaru, string idJ
 void ubahJadwal(unordered_map<string, Ruangan>& daftarRuangan) {
     int c;
     string targetIdJadwal, targetIdRuangan, namaKegiatan;
-    Ruangan dummy;
-    time_t mulai;
-    time_t selesai;
+
     cout << '\n' << GREEN << "UPDATE JADWAL" << RESET<< endl;   
     targetIdRuangan = searchJadwalRuangan(daftarRuangan);
     
@@ -351,7 +407,7 @@ void ubahJadwal(unordered_map<string, Ruangan>& daftarRuangan) {
         return;
     }
 
-    unordered_map<string, Jadwal> dataJadwal = daftarRuangan[targetIdRuangan].getJadwal();
+    const auto& dataJadwal = daftarRuangan[targetIdRuangan].getJadwal();
 
     if(dataJadwal.empty()) {
         return;
@@ -360,7 +416,6 @@ void ubahJadwal(unordered_map<string, Ruangan>& daftarRuangan) {
     cout << '\n' << ">> Pilih id jadwal yang ingin diubah: ";
     cin >> targetIdJadwal;
     
-    // cout << GREEN << 
     
     cout << GREEN <<"\nPilih opsi berikut:" << RESET<< endl;
     cout << GREEN <<"1. Ubah waktu" << RESET << endl;
@@ -388,6 +443,11 @@ void ubahJadwal(unordered_map<string, Ruangan>& daftarRuangan) {
             time_t selesai = makeTime(thn, bln, hari, jamSelesai, menitSelesai);
             cout <<RESET<< endl;
 
+            if (mulai >= selesai) {
+                cout << RED << "Waktu tidak valid. Jam selesai harus setelah jam mulai." << RESET << endl;
+                break;
+            }
+
             it->second.ubahWaktu(targetIdJadwal, mulai, selesai);
         }   
             break;
@@ -411,69 +471,61 @@ void ubahJadwal(unordered_map<string, Ruangan>& daftarRuangan) {
     }
 }
 
+void hapusJadwal(unordered_map<string, Ruangan>& daftarRuangan) {
+    string targetIdRuangan, targetIdJadwal;
+
+    cout << '\n' << GREEN << "HAPUS JADWAL" << RESET<< endl;   
+    targetIdRuangan = searchJadwalRuangan(daftarRuangan);
+    
+    if(targetIdRuangan == " ") {
+        cout << "Maaf, ruangan tidak ditemukan." << endl;
+        return;
+    }
+
+    const auto& dataJadwal = daftarRuangan[targetIdRuangan].getJadwal();
+
+    if(dataJadwal.empty()) {
+        return;
+    }
+
+    cout << '\n' << ">> Pilih id jadwal yang ingin dihapus: ";
+    cin >> targetIdJadwal;
+
+    auto it = daftarRuangan.find(targetIdRuangan);
+    it->second.hapusJadwalById(targetIdJadwal);
+    cout << CYAN << "\nJadwal dengan ID " << targetIdJadwal << " di ruangan " << daftarRuangan[targetIdRuangan].getNamaRuangan() << " berhasil dihapus." << RESET << endl;
+}
+
 int main (){
     // Akses json
-    string file = "data.json";
+    string file = "dummy.json";
 
     readJson(file);
-
-    // // Fake data buat mempermudah testing
-    // Ruangan r1("Ruang A", "R001");
-    // Ruangan r2("Ruang B", "R002");
-
-    // daftarRuangan.insert({{r1.getId(), r1}, {r2.getId(), r2}});
-
-    // // contoh implementasi bikin jadwal di suatu ruangan
-    // time_t mulai = makeTime(2026, 2, 14, 9, 0);
-    // time_t selesai = makeTime(2026, 2, 14, 10, 0);
-
-    // // bikin jadwal pake constructor.
-    // Jadwal j1(mulai, selesai, "Meeting Tim", "J001"); 
-
-    // // cek ketersediaan ruangan pake id ruangan sebagai key map.
-    // // inset juga pake id ruangan.
-
-    // // Cek dulu pakai find()
-    // if (daftarRuangan.find("R002") != daftarRuangan.end()) {
-    //     // Kalau ada, baru pakai []
-    //     if (daftarRuangan["R002"].cekKetersediaan(mulai, selesai)) {
-    //         daftarRuangan["R002"].tambahJadwal(j1);
-    //         cout << CYAN <<  "Jadwal berhasil ditambahkan." <<RESET<< endl;
-    //     } 
-    //     else {
-    //         cout << RED << "ERR: Jadwal overlap." << RESET << endl;
-    //     }
-
-    // } 
-    // else {
-    //     cout << RED << "ERR: Ruangan tidak ditemukan." << RESET << endl;
-    // }
-
-    // ngerti ga?
 
     /// Program Loop
     while (true) {
         cout << "\n" << GREEN << "Menu:" << RESET <<RESET<< endl;
         cout << GREEN << "1. Lihat List Ruangan" << RESET  <<RESET<< endl;
         cout << GREEN << "2. Search Jadwal dari Ruangan" << RESET  <<RESET<< endl;
-        cout << GREEN << "3. Search Jadwal dari Waktu" << RESET <<RESET<< endl;
-        cout << GREEN << "4. Update Jadwal" << RESET <<RESET<< endl;
+        cout << GREEN << "3. Search Jadwal berdasarkan Waktu" << RESET  <<RESET<< endl;
+        cout << GREEN << "4. Search Ruangan Tersedia pada Waktu Tertentu" << RESET <<RESET<< endl;
+        cout << GREEN << "5. Update Jadwal" << RESET <<RESET<< endl;
+        cout << GREEN << "6. Hapus Jadwal" << RESET <<RESET<< endl;
         cout << RED << "0. Selesai" << RESET <<RESET<< endl;
 
         int choice;
 
-        if(choice == 0) {
-            break;
-        }
-
-
-        cout << GREEN << "Pilih menu (0-4): " << RESET;
+        cout << GREEN << "Pilih menu (0-6): " << RESET;
         if (!(cin >> choice)) {
             cout <<RESET<< endl;
             cout << RED << "ERR: Input harus angka." << RESET <<RESET<< endl;
             cin.clear();
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
             continue;
+        }
+
+        if(choice == 0) {
+            break;
         }
 
         cout <<RESET<< endl;
@@ -488,11 +540,19 @@ int main (){
                 break;
             }
             case 3: {
-                searchRuanganTersedia(daftarRuangan);
+                searchJadwalByTime(daftarRuangan);
                 break;
             }
             case 4: {
+                searchRuanganTersedia(daftarRuangan);
+                break;
+            }
+            case 5: {
                 ubahJadwal(daftarRuangan);
+                break;
+            }
+            case 6: {
+                hapusJadwal(daftarRuangan);
                 break;
             }
             default:
