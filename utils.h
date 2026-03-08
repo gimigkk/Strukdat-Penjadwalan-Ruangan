@@ -55,4 +55,24 @@ inline bool sameDate(time_t a, time_t b) {
            ta->tm_mday == tb->tm_mday;
 }
 
+// Helper buat input tanggal, support shortcut [T] untuk hari ini
+// return tuple<int, int, int> = {thn, bln, hari}
+inline tuple<int,int,int> inputTanggal() {
+    string input;
+    cout << ">> Tanggal (YYYY MM DD) atau [T] untuk hari ini: ";
+    cin >> input;
+
+    if (input == "T" || input == "t") {
+        time_t now = time(nullptr);
+        tm* t = localtime(&now);
+        return {t->tm_year + 1900, t->tm_mon + 1, t->tm_mday};
+    }
+
+    // input normal YYYY MM DD
+    int thn = stoi(input);
+    int bln, hari;
+    cin >> bln >> hari;
+    return {thn, bln, hari};
+}
+
 #endif

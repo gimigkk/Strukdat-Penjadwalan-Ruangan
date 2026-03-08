@@ -222,4 +222,151 @@ void browseJadwal(const Ruangan& ruangan) {
     }
 }
 
+// pagination buat hasil search jadwal lintas ruangan
+// sama kayak browseJadwal tapi tiap entry nampilin nama ruangan juga
+void browseHasilSearch(const string& title, const vector<pair<const Jadwal*, string>>& results) {
+    int total = results.size();
+    int page = 0;
+    time_t now = time(nullptr);
+
+    while (true) {
+        system("clear");
+
+        auto [termCols, termRows] = getTerminalSize();
+
+        // responsive columns
+        int cols;
+        if (termCols < 80) cols = 1;
+        else if (termCols < 160) cols = 2;
+        else cols = 3;
+
+        int colWidth = termCols / cols;
+
+        // tiap entry = 6 baris (+ nama ruangan), sisain 3 buat header/footer
+        int rowsPerPage = (termRows - 3) / 6;
+        if (rowsPerPage < 1) rowsPerPage = 1;
+        int PAGE_SIZE = rowsPerPage * cols;
+        int totalPages = (total + PAGE_SIZE - 1) / PAGE_SIZE;
+
+        cout << GREEN << title << " (Halaman " << page+1 << "/" << totalPages << ")" << RESET << endl;
+        cout << string(termCols, '-') << endl;
+
+        int start = page * PAGE_SIZE;
+        int end = min(start + PAGE_SIZE, total);
+
+        for (int row = 0; row < rowsPerPage; row++) {
+            vector<int> indices;
+            for (int col = 0; col < cols; col++) {
+                int idx = start + row * cols + col;
+                if (idx < end) indices.push_back(idx);
+            }
+            if (indices.empty()) break;
+
+            auto getLine = [&](int idx, int lineNum) -> string {
+                const Jadwal* j = results[idx].first;
+                const string& namaRuangan = results[idx].second;
+                switch(lineNum) {
+                    case 0: return "Ruangan : " + namaRuangan;
+                    case 1: return "ID      : " + j->getIdJadwal();
+                    case 2: return "Kegiatan: " + j->getNamaKegiatan();
+                    case 3: return "Mulai   : " + formatTime(j->getMulai());
+                    case 4: return "Selesai : " + formatTime(j->getSelesai());
+                    case 5: return "";
+                    default: return "";
+                }
+            };
+
+            bool isLastRow = (start + (row + 1) * cols >= end);
+            for (int lineNum = 0; lineNum < 6; lineNum++) {
+                if (lineNum == 5 && isLastRow) continue;
+                for (int col = 0; col < (int)indices.size(); col++) {
+                    int idx = indices[col];
+                    const Jadwal* j = results[idx].first;
+                    string color = (j->getSelesai() < now) ? GRAY : RESET;
+                    string line = getLine(idx, lineNum);
+
+                    if ((int)line.size() > colWidth - 2)
+                        line = line.substr(0, colWidth - 5) + "...";
+
+                    ostringstream padded;
+                    padded << left << setw(colWidth) << line;
+                    cout << color << padded.str() << RESET;
+                }
+                cout << endl;
+            }
+        }
+
+        cout << string(termCols, '-') << endl;
+        cout << GRAY << "[←/→/↑/↓] atau [N/P] Navigate  [Q] Quit" << RESET << endl;
+        cout.flush();
+
+        termios orig;
+        tcgetattr(STDIN_FILENO, &orig);
+        enableRawMode(orig);
+        int c = readKey();
+        disableRawMode(orig);
+
+        if (c == 'n' && page < totalPages - 1) page++;
+        else if (c == 'p' && page > 0) page--;
+        else if (c == 'q') break;
+    }
+}
+
+// pagination buat hasil search ruangan tersedia
+// single line per entry, mirip browseRuangan tapi nerima vector hasil search
+void browseHasilRuangan(const string& title, const vector<pair<string, string>>& results) {
+    int total = results.size();
+    int page = 0;
+
+    while (true) {
+        system("clear");
+
+        auto [termCols, termRows] = getTerminalSize();
+
+        int cols;
+        if (termCols < 60) cols = 1;
+        else if (termCols < 120) cols = 2;
+        else cols = 3;
+
+        int colWidth = termCols / cols;
+
+        int PAGE_SIZE = (termRows - 5) * cols;
+        int totalPages = (total + PAGE_SIZE - 1) / PAGE_SIZE;
+
+        cout << GREEN << title << " (Halaman " << page+1 << "/" << totalPages << ")" << RESET << endl;
+        cout << string(termCols, '-') << endl;
+
+        int start = page * PAGE_SIZE;
+        int end = min(start + PAGE_SIZE, total);
+
+        for (int i = start; i < end; i++) {
+            string entry = "ID: " + results[i].first + "  " + results[i].second;
+
+            if ((int)entry.size() > colWidth - 2)
+                entry = entry.substr(0, colWidth - 5) + "...";
+
+            ostringstream padded;
+            padded << left << setw(colWidth) << entry;
+            cout << padded.str();
+            if ((i - start + 1) % cols == 0) cout << endl;
+        }
+
+        if ((end - start) % cols != 0) cout << endl;
+
+        cout << string(termCols, '-') << endl;
+        cout << GRAY << "[←/→/↑/↓] atau [N/P] Navigate  [Q] Quit" << RESET << endl;
+        cout.flush();
+
+        termios orig;
+        tcgetattr(STDIN_FILENO, &orig);
+        enableRawMode(orig);
+        int c = readKey();
+        disableRawMode(orig);
+
+        if (c == 'n' && page < totalPages - 1) page++;
+        else if (c == 'p' && page > 0) page--;
+        else if (c == 'q') break;
+    }
+}
+
 #endif

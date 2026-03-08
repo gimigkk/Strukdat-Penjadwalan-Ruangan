@@ -10,7 +10,6 @@ using namespace std;
 void tambahJadwal(map<string, Ruangan>& daftarRuangan) {
 
     string idRuangan;
-    int thn, bln, hari;
     int jamMulai, menitMulai;
     int jamSelesai, menitSelesai;
     string namaKegiatan;
@@ -28,8 +27,7 @@ void tambahJadwal(map<string, Ruangan>& daftarRuangan) {
     
     it->second.printAllJadwal();
     cout << endl;
-    cout << ">> Tanggal (YYYY MM DD): ";
-    cin >> thn >> bln >> hari;
+    auto [thn, bln, hari] = inputTanggal();
 
     it->second.printJadwalByDate(makeTime(thn, bln, hari, 0, 0)); cout << endl;
 
@@ -74,46 +72,50 @@ string searchJadwalRuangan(const map<string, Ruangan>& daftarRuangan) {
 }
 
 void searchJadwalByTime(const map<string, Ruangan>& daftarRuangan) {
-    int thn, bln, hari, jamMulai, menitMulai;
-    cout << ">> Tanggal (YYYY MM DD)\t: ";
-    cin >> thn >> bln >> hari;
+    int jamMulai, menitMulai, jamSelesai, menitSelesai;
+    auto [thn, bln, hari] = inputTanggal();
 
     cout << ">> Waktu mulai (HH MM)\t: ";
     cin >> jamMulai >> menitMulai;
     time_t mulai = makeTime(thn, bln, hari, jamMulai, menitMulai);
 
-    cout <<RESET<< endl;
+    cout << ">> Waktu selesai (HH MM)\t: ";
+    cin >> jamSelesai >> menitSelesai;
+    time_t selesai = makeTime(thn, bln, hari, jamSelesai, menitSelesai);
 
-    cout << "Jadwal yang dimulai pada " << formatHourMinute(mulai) << ",\npada tanggal " << formatDate(mulai) << ":" <<RESET<< endl;
-    cout << "---" <<RESET<< endl;
-    bool found = false;
+    if (mulai >= selesai) {
+        cout << RED << "Waktu tidak valid." << RESET << endl;
+        return;
+    }
+
+    cout << RESET << endl;
+
+    vector<pair<const Jadwal*, string>> results;
     for (const auto& pair : daftarRuangan) {
         const auto& jadwalMap = pair.second.getJadwal();
         for (const auto& jadwalPair : jadwalMap) {
             const Jadwal& jadwal = jadwalPair.second;
-            if (jadwal.getMulai() == mulai) {
-                cout << "ID Ruangan\t: " << pair.second.getId() << endl;
-                cout << "Nama Ruangan\t: " << pair.second.getNamaRuangan() << endl;
-                cout << "ID Jadwal\t: " << jadwal.getIdJadwal() << endl;
-                cout << "Kegiatan\t: " << jadwal.getNamaKegiatan() << endl;
-                cout << "Jam Mulai\t: " << formatTime(jadwal.getMulai()) << endl;
-                cout << "Jam Selesai\t: " << formatTime(jadwal.getSelesai()) << endl;
-                found = true;
+            // cek overlap: jadwal aktif kalau ga selesai sebelum mulai dan ga mulai setelah selesai
+            if (!(jadwal.getSelesai() <= mulai || jadwal.getMulai() >= selesai)) {
+                results.push_back({&jadwal, pair.second.getNamaRuangan()});
             }
         }
     }
-    if (!found) {
-        cout << RED << "Tidak ada." <<RESET<< endl;
-    }
-    cout << "---" <<RESET<< endl;
 
+    if (results.empty()) {
+        cout << RED << "Tidak ada jadwal pada range waktu tersebut." << RESET << endl;
+        return;
+    }
+
+    string title = "Jadwal aktif " + formatHourMinute(mulai) + " - " + formatHourMinute(selesai)
+                 + " pada " + formatDate(mulai);
+    browseHasilSearch(title, results);
 }
 
 // Cari ruangan yang tersedia pada waktu tertentu
 void searchRuanganTersedia(const map<string, Ruangan>& daftarRuangan) {
-    int thn, bln, hari, jamMulai, menitMulai, jamSelesai, menitSelesai;
-    cout << ">> Tanggal (YYYY MM DD)\t: ";
-    cin >> thn >> bln >> hari;
+    int jamMulai, menitMulai, jamSelesai, menitSelesai;
+    auto [thn, bln, hari] = inputTanggal();
 
     cout << ">> Waktu mulai (HH MM)\t: ";
     cin >> jamMulai >> menitMulai;
@@ -126,24 +128,25 @@ void searchRuanganTersedia(const map<string, Ruangan>& daftarRuangan) {
     if (mulai >= selesai) {
         cout << RED << "Waktu tidak valid. Jam selesai harus setelah jam mulai." << RESET << endl;
         return;
-    }   
+    }
 
-    cout <<RESET<< endl;
+    cout << RESET << endl;
 
-    cout << "List ruangan tersedia dari " << formatHourMinute(mulai) << " sampai " << formatHourMinute(selesai) << ",\npada tanggal " << formatDate(mulai) << ":" <<RESET<< endl;
-    cout << "---" <<RESET<< endl;
-    bool found = false;
+    vector<pair<string, string>> results;
     for (const auto& pair : daftarRuangan) {
-        
         if (pair.second.cekKetersediaan(mulai, selesai)) {
-            cout << "ID: " << pair.second.getId() << ", Nama: " << pair.second.getNamaRuangan() <<RESET<< endl;
-            found = true;
+            results.push_back({pair.second.getId(), pair.second.getNamaRuangan()});
         }
     }
-    if (!found) {
-        cout << RED << "Tidak ada." <<RESET<< endl;
+
+    if (results.empty()) {
+        cout << RED << "Tidak ada ruangan tersedia." << RESET << endl;
+        return;
     }
-    cout << "---" <<RESET<< endl;
+
+    string title = "Ruangan tersedia " + formatHourMinute(mulai) + " - " + formatHourMinute(selesai)
+                 + " pada " + formatDate(mulai);
+    browseHasilRuangan(title, results);
 }
 
 void ubahJadwal(map<string, Ruangan>& daftarRuangan) {
@@ -182,10 +185,8 @@ void ubahJadwal(map<string, Ruangan>& daftarRuangan) {
     auto it = daftarRuangan.find(targetIdRuangan);
     switch(c) {
         case 1: {
-            int thn, bln, hari, jamMulai, menitMulai, jamSelesai, menitSelesai;
-            cout << ">> Tanggal (YYYY MM DD)\t: ";
-            
-            cin >> thn >> bln >> hari;
+            int jamMulai, menitMulai, jamSelesai, menitSelesai;
+            auto [thn, bln, hari] = inputTanggal();
             cout << ">> Waktu mulai (HH MM)\t: ";
             cin >> jamMulai >> menitMulai;
             time_t mulai = makeTime(thn, bln, hari, jamMulai, menitMulai);
