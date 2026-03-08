@@ -250,9 +250,9 @@ Semua halaman pagination menggunakan raw mode (`termios`) agar input langsung te
 ---
 
 
-
+Folder `bin` telah ditambahkan ke `.gitignore`
 ```bash
-g++ -I. -std=c++17 main.cpp -o main && ./main
+g++ -I. -std=c++17 main.cpp -o ./bin/main && ./bin/main
 ```
 
 Pastikan folder `nlohmann/` berisi `json.hpp` ada di direktori yang sama dengan `main.cpp`.
