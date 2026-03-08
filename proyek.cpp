@@ -58,7 +58,7 @@ class Ruangan {
     private:
         string namaRuangan;
         string id;
-        map<string, Jadwal> daftarJadwal;
+        unordered_map<string, Jadwal> daftarJadwal;
 
     public:
         Ruangan() : namaRuangan(" "), id(" ") {}
@@ -67,11 +67,11 @@ class Ruangan {
         string getId() const { return id; }
         string getNamaRuangan() const { return namaRuangan; }
 
-        const map<string, Jadwal>& getJadwal() const{
+        const auto& getJadwal() const{
             return daftarJadwal;
         }
         
-        void tambahJadwal(const Jadwal& j) {
+        void setJadwal(const Jadwal& j) {
             daftarJadwal[j.getIdJadwal()] = j;
         }
 
@@ -149,11 +149,22 @@ class Ruangan {
             
         }
 
-        // Update ruangan
-        void ubahRuangan(const string& idRuanganLama, const string& idRuanganBaru, const string& idJadwal);
+        void printAllJadwal() const {
+            cout << GREEN << "Jadwal Ruangan: "<< getNamaRuangan() <<RESET<< endl;
+            for(const auto& pair : daftarJadwal) {
+                const Jadwal& data = pair.second;
+                cout << "ID Jadwal: "<< data.getIdJadwal() <<RESET<< endl;
+                cout << "Kegiatan\t: " << data.getNamaKegiatan() <<RESET<< endl;
+                cout << "Jam Mulai\t: " << formatTime(data.getMulai()) <<RESET<< endl;
+                cout << "Jam Selesai\t: " << formatTime(data.getSelesai()) <<RESET<< endl;
+                cout << "---" <<RESET<< endl;
+            }
+        }
 
-        
+        void tambahJadwalBaru(time_t mulai, time_t selesai, const string& namaKegiatan);
+        void ubahRuangan(const string& idRuanganLama, const string& idRuanganBaru, const string& idJadwal);        
         void loadJadwal(const Jadwal& j);
+        void printJadwalByDate(time_t targetDate) const;
 
 };
 
@@ -162,6 +173,20 @@ class Ruangan {
 // buat presistent storage kita simpen di file
 // tapi pikirin lagi karena gw ga kepikiran.
 unordered_map<string, Ruangan> daftarRuangan;
+
+// Auto generate ID
+int globalJadwalCounter = 1;
+
+string generateJadwalId() {
+    stringstream ss;
+    ss << "J" << setw(6) << setfill('0') << globalJadwalCounter++;
+    return ss.str();
+}
+
+int extractJadwalNumber(const string& id) {
+    if (id.size() < 2 || id[0] != 'J') return 0;
+    return stoi(id.substr(1));
+}
 
 bool isJadwalIdExistGlobal(const string& idJadwal) {
     for (const auto& pair : daftarRuangan) {
@@ -209,6 +234,8 @@ void readJson(const string& file) {
     // Bersihin runtime storage
     daftarRuangan.clear();
 
+    int maxJadwalNumber = 0;
+
     // Masukkin ke map
     for(auto& ruangan : data["ruangan"]) {
         string id = ruangan["id"];
@@ -224,9 +251,12 @@ void readJson(const string& file) {
 
             Jadwal dataJadwal(mulai, selesai, namaKegiatan, id);
             dataRuangan.loadJadwal(dataJadwal);
+
+            maxJadwalNumber = max(maxJadwalNumber, extractJadwalNumber(id));
         }
         daftarRuangan.insert({dataRuangan.getId(), dataRuangan});
     }
+    globalJadwalCounter = maxJadwalNumber + 1;
 }
 
 // Buat masukkin data ke json
@@ -271,6 +301,102 @@ void printAllRuangan() {
     for (const auto& pair : daftarRuangan) {
         cout << "ID: " << pair.second.getId() << ", Nama: " << pair.second.getNamaRuangan() << endl;
     }
+}
+
+void Ruangan::printJadwalByDate(time_t targetDate) const {
+    tm* targetTm = localtime(&targetDate);
+
+    int targetYear = targetTm->tm_year;
+    int targetMonth = targetTm->tm_mon;
+    int targetDay = targetTm->tm_mday;
+
+    cout << GREEN << "Jadwal Ruangan: " << getNamaRuangan()
+         << " pada tanggal " << formatDate(targetDate) << RESET << endl;
+    cout << "---" << RESET << endl;
+
+    bool found = false;
+
+    for (const auto& it : daftarJadwal) {
+        const Jadwal& data = it.second;
+
+        time_t waktuMulai = data.getMulai();
+        tm* jadwalTm = localtime(&waktuMulai);
+
+        if (jadwalTm->tm_year == targetYear &&
+            jadwalTm->tm_mon == targetMonth &&
+            jadwalTm->tm_mday == targetDay) {
+
+            cout << "ID Jadwal: " << data.getIdJadwal() << RESET << endl;
+            cout << "Kegiatan\t: " << data.getNamaKegiatan() << RESET << endl;
+            cout << "Jam Mulai\t: " << formatTime(data.getMulai()) << RESET << endl;
+            cout << "Jam Selesai\t: " << formatTime(data.getSelesai()) << RESET << endl;
+            cout << "---" << RESET << endl;
+
+            found = true;
+        }
+    }
+
+    if (!found) {
+        cout << RED << "Tidak ada jadwal pada tanggal " << formatDate(targetDate) << "." << RESET << endl;
+    }
+}
+
+void Ruangan::tambahJadwalBaru(time_t mulai, time_t selesai, const string& namaKegiatan) {
+    if (!cekKetersediaan(mulai, selesai)) {
+        cout << RED << "Jadwal bentrok dengan jadwal lain." << RESET << endl;
+        return;
+    }
+
+    string newId = generateJadwalId();
+    Jadwal j(mulai, selesai, namaKegiatan, newId);
+    setJadwal(j);
+
+    cout << CYAN << "Jadwal berhasil ditambahkan dengan ID " << newId << RESET << endl;
+}
+
+void tambahJadwal(unordered_map<string, Ruangan>& daftarRuangan) {
+
+    string idRuangan;
+    int thn, bln, hari;
+    int jamMulai, menitMulai;
+    int jamSelesai, menitSelesai;
+    string namaKegiatan;
+
+    printAllRuangan(); cout << endl;
+    cout << ">> Masukkan ID ruangan: ";
+    cin >> idRuangan;
+
+    auto it = daftarRuangan.find(idRuangan);
+    if(it == daftarRuangan.end()) {
+        cout << RED << "Ruangan tidak ditemukan." << RESET << endl;
+        return;
+    }
+    
+    it->second.printAllJadwal();
+    cout << endl;
+    cout << ">> Tanggal (YYYY MM DD): ";
+    cin >> thn >> bln >> hari;
+
+    it->second.printJadwalByDate(makeTime(thn, bln, hari, 0, 0)); cout << endl;
+
+    cout << ">> Waktu mulai (HH MM): ";
+    cin >> jamMulai >> menitMulai;
+
+    cout << ">> Waktu selesai (HH MM): ";
+    cin >> jamSelesai >> menitSelesai;
+
+    cout << ">> Nama kegiatan: ";
+    getline(cin >> ws, namaKegiatan);
+
+    time_t mulai = makeTime(thn, bln, hari, jamMulai, menitMulai);
+    time_t selesai = makeTime(thn, bln, hari, jamSelesai, menitSelesai);
+
+    if(mulai >= selesai) {
+        cout << RED << "Waktu tidak valid." << RESET << endl;
+        return;
+    }
+
+    it->second.tambahJadwalBaru(mulai, selesai, namaKegiatan);
 }
 
 
@@ -388,7 +514,7 @@ void Ruangan::ubahRuangan(const string& idRuanganLama, const string& idRuanganBa
     }  
 
     // Tambah jadwal di ruangan baru
-    ruanganBaru.tambahJadwal(dataJadwal);
+    ruanganBaru.setJadwal(dataJadwal);
     // Hapus jadwal di ruangan lama
     ruanganLama.hapusJadwalById(idJadwal);
 
@@ -506,16 +632,17 @@ int main (){
     while (true) {
         cout << "\n" << GREEN << "Menu:" << RESET <<RESET<< endl;
         cout << GREEN << "1. Lihat List Ruangan" << RESET  <<RESET<< endl;
-        cout << GREEN << "2. Search Jadwal dari Ruangan" << RESET  <<RESET<< endl;
-        cout << GREEN << "3. Search Jadwal berdasarkan Waktu" << RESET  <<RESET<< endl;
-        cout << GREEN << "4. Search Ruangan Tersedia pada Waktu Tertentu" << RESET <<RESET<< endl;
-        cout << GREEN << "5. Update Jadwal" << RESET <<RESET<< endl;
-        cout << GREEN << "6. Hapus Jadwal" << RESET <<RESET<< endl;
+        cout << GREEN << "2. Tambah Jadwal" << RESET  <<RESET<< endl;
+        cout << GREEN << "3. Search Jadwal dari Ruangan" << RESET  <<RESET<< endl;
+        cout << GREEN << "4. Search Jadwal berdasarkan Waktu" << RESET  <<RESET<< endl;
+        cout << GREEN << "5. Search Ruangan Tersedia pada Waktu Tertentu" << RESET <<RESET<< endl;
+        cout << GREEN << "6. Update Jadwal" << RESET <<RESET<< endl;
+        cout << GREEN << "7. Hapus Jadwal" << RESET <<RESET<< endl;
         cout << RED << "0. Selesai" << RESET <<RESET<< endl;
 
         int choice;
 
-        cout << GREEN << "Pilih menu (0-6): " << RESET;
+        cout << GREEN << "Pilih menu (0-7): " << RESET;
         if (!(cin >> choice)) {
             cout <<RESET<< endl;
             cout << RED << "ERR: Input harus angka." << RESET <<RESET<< endl;
@@ -536,22 +663,26 @@ int main (){
                 break;
             }
             case 2: {
-                searchJadwalRuangan(daftarRuangan);
+                tambahJadwal(daftarRuangan);
                 break;
             }
             case 3: {
-                searchJadwalByTime(daftarRuangan);
+                searchJadwalRuangan(daftarRuangan);
                 break;
             }
             case 4: {
-                searchRuanganTersedia(daftarRuangan);
+                searchJadwalByTime(daftarRuangan);
                 break;
             }
             case 5: {
-                ubahJadwal(daftarRuangan);
+                searchRuanganTersedia(daftarRuangan);
                 break;
             }
             case 6: {
+                ubahJadwal(daftarRuangan);
+                break;
+            }
+            case 7: {
                 hapusJadwal(daftarRuangan);
                 break;
             }
