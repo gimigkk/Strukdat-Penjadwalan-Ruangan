@@ -16,7 +16,7 @@ int globalJadwalCounter = 1;
 
 string generateJadwalId() {
     stringstream ss;
-    ss << "J" << setw(6) << setfill('0') << globalJadwalCounter++;
+    ss << "J" << setw(4) << setfill('0') << globalJadwalCounter++;
     return ss.str();
 }
 

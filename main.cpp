@@ -78,7 +78,7 @@ int main (){
         }
     }
     
-    cout << "\nByeeee!" << endl;
+    cout << CYAN << "\n--- Terima kasih telah menggunakan layanan ini :D ---" << RESET << endl;
     writeJson(file);
 
     return 0;

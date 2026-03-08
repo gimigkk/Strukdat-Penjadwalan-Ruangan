@@ -90,6 +90,7 @@ class Ruangan {
         // Update nama kegiatan sebuah jadwal
         void ubahNamaKegiatan(const string& idJadwal, const string& nk) {
             auto it = daftarJadwal.find(idJadwal);
+            string currentNamaKegiatan = it->second.getNamaKegiatan();
             if(it == daftarJadwal.end()) {
                 cout << RED << "Data tidak ditemukan" << RESET << endl;
                 return;
@@ -97,7 +98,8 @@ class Ruangan {
 
             Jadwal& data = it->second;
             data.setNamaKegiatan(nk);
-            cout << CYAN << "\nNama kegiatan untuk jadwal dengan ID " << data.getIdJadwal() << " berhasil diubah" << RESET << endl;
+            cout << CYAN << "Kegiatan \"" << currentNamaKegiatan << "\" di ruangan " << getNamaRuangan();
+            cout << " berhasil diubah menjadi \"" << nk << "\"." << RESET << endl;
             return;
             
         }

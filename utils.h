@@ -58,21 +58,61 @@ inline bool sameDate(time_t a, time_t b) {
 // Helper buat input tanggal, support shortcut [T] untuk hari ini
 // return tuple<int, int, int> = {thn, bln, hari}
 inline tuple<int,int,int> inputTanggal() {
-    string input;
-    cout << ">> Tanggal (YYYY MM DD) atau [T] untuk hari ini: ";
-    cin >> input;
+    while (true) {
+        string input;
+        cout << ">> Tanggal (YYYY MM DD) atau [T] untuk hari ini: ";
 
-    if (input == "T" || input == "t") {
-        time_t now = time(nullptr);
-        tm* t = localtime(&now);
-        return {t->tm_year + 1900, t->tm_mon + 1, t->tm_mday};
+        if (!(cin >> input)) {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << RED << "Input tidak valid." << RESET << endl;
+            continue;
+        }
+
+        if (input == "T" || input == "t") {
+            time_t now = time(nullptr);
+            tm* t = localtime(&now);
+            return {t->tm_year + 1900, t->tm_mon + 1, t->tm_mday};
+        }
+
+        int thn, bln, hari;
+        stringstream ss(input);
+        if (!(ss >> thn) || !ss.eof()) {
+            cout << RED << "Format tanggal salah. Gunakan YYYY MM DD atau T." << RESET << endl;
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            continue;
+        }
+
+        if (!(cin >> bln >> hari)) {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << RED << "Format tanggal salah. Gunakan YYYY MM DD atau T." << RESET << endl;
+            continue;
+        }
+
+        tm t = {};
+        t.tm_year = thn - 1900;
+        t.tm_mon = bln - 1;
+        t.tm_mday = hari;
+        t.tm_hour = 0;
+        t.tm_min = 0;
+        t.tm_sec = 0;
+        t.tm_isdst = -1;
+
+        time_t parsed = mktime(&t);
+        if (parsed == -1) {
+            cout << RED << "Tanggal tidak valid." << RESET << endl;
+            continue;
+        }
+
+        tm* check = localtime(&parsed);
+        if (check->tm_year != t.tm_year || check->tm_mon != t.tm_mon || check->tm_mday != t.tm_mday) {
+            cout << RED << "Tanggal tidak valid." << RESET << endl;
+            continue;
+        }
+
+        return {thn, bln, hari};
     }
-
-    // input normal YYYY MM DD
-    int thn = stoi(input);
-    int bln, hari;
-    cin >> bln >> hari;
-    return {thn, bln, hari};
 }
 
 #endif

@@ -25,19 +25,21 @@ void tambahJadwal(map<string, Ruangan>& daftarRuangan) {
         return;
     }
     
-    it->second.printAllJadwal();
     cout << endl;
     auto [thn, bln, hari] = inputTanggal();
 
-    it->second.printJadwalByDate(makeTime(thn, bln, hari, 0, 0)); cout << endl;
+    // show jadwal ruangan pada tanggal itu biar user bisa liat ketersediaan
+    browseJadwalByDate(it->second, makeTime(thn, bln, hari, 0, 0)); 
+    
+    cout << GREEN << "Tambah Jadwal Baru" << RESET << endl;
 
-    cout << ">> Waktu mulai (HH MM): ";
+    cout << ">> Waktu mulai (HH MM)\t: ";
     cin >> jamMulai >> menitMulai;
 
     cout << ">> Waktu selesai (HH MM): ";
     cin >> jamSelesai >> menitSelesai;
 
-    cout << ">> Nama kegiatan: ";
+    cout << ">> Nama kegiatan\t: ";
     getline(cin >> ws, namaKegiatan);
 
     time_t mulai = makeTime(thn, bln, hari, jamMulai, menitMulai);
@@ -155,6 +157,7 @@ void ubahJadwal(map<string, Ruangan>& daftarRuangan) {
 
     cout << '\n' << GREEN << "UPDATE JADWAL" << RESET<< endl;   
     targetIdRuangan = searchJadwalRuangan(daftarRuangan);
+    cout << '\n' << GREEN << "UPDATE JADWAL" << RESET<< endl;   
     
     if(targetIdRuangan.empty()) {
         cout << "Maaf, ruangan tidak ditemukan." << endl;
@@ -207,11 +210,11 @@ void ubahJadwal(map<string, Ruangan>& daftarRuangan) {
             string namaKegiatan;
             cout << ">> Masukkan nama kegiatan: " << RESET;
             getline(cin >> ws, namaKegiatan);
-
             it->second.ubahNamaKegiatan(targetIdJadwal, namaKegiatan);
             break;
         }
         case 3: {
+            browseRuangan();
             string idRuanganBaru;
             cout << ">> Masukkan ID ruangan baru: " << RESET;
             cin >> idRuanganBaru;

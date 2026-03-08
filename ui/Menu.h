@@ -131,7 +131,6 @@ void browseJadwal(const Ruangan& ruangan) {
 
     int total = list.size();
     int page = 0;
-    time_t now = time(nullptr);
 
     while (true) {
         system("clear");
@@ -190,7 +189,7 @@ void browseJadwal(const Ruangan& ruangan) {
                 for (int col = 0; col < (int)indices.size(); col++) {
                     int idx = indices[col];
                     const Jadwal* j = list[idx];
-                    string color = (j->getSelesai() < now) ? GRAY : RESET;
+                    string color = RESET;
                     string line = getJadwalLine(idx, lineNum);
 
                     // truncate kalau kepanjangan
@@ -222,12 +221,121 @@ void browseJadwal(const Ruangan& ruangan) {
     }
 }
 
+void browseJadwalByDate(const Ruangan& ruangan, time_t targetDate) {
+    vector<const Jadwal*> list;
+    tm* targetTm = localtime(&targetDate);
+    int targetYear = targetTm->tm_year;
+    int targetMonth = targetTm->tm_mon;
+    int targetDay = targetTm->tm_mday;
+
+    for (const auto& pair : ruangan.getJadwal()) {
+        const Jadwal& data = pair.second;
+        time_t mulai = data.getMulai();
+        tm* jadwalTm = localtime(&mulai);
+        if (jadwalTm->tm_year == targetYear &&
+            jadwalTm->tm_mon == targetMonth &&
+            jadwalTm->tm_mday == targetDay) {
+            list.push_back(&data);
+        }
+    }
+
+    sort(list.begin(), list.end(), [](const Jadwal* a, const Jadwal* b) {
+        return a->getMulai() > b->getMulai();
+    });
+
+    int total = list.size();
+    int page = 0;
+
+    while (true) {
+        system("clear");
+
+        auto [termCols, termRows] = getTerminalSize();
+
+        int cols;
+        if (termCols < 80) cols = 1;
+        else if (termCols < 160) cols = 2;
+        else cols = 3;
+
+        int colWidth = termCols / cols;
+
+        int rowsPerPage = (termRows - 3) / 5;
+        if (rowsPerPage < 1) rowsPerPage = 1;
+        int PAGE_SIZE = rowsPerPage * cols;
+        int totalPages = max(1, (total + PAGE_SIZE - 1) / PAGE_SIZE);
+
+        cout << GREEN << "Jadwal Ruangan: " << ruangan.getNamaRuangan()
+             << " pada " << formatDate(targetDate)
+             << " (Halaman " << page+1 << "/" << totalPages << ")" << RESET << endl;
+        cout << string(termCols, '-') << endl;
+
+        if (total == 0) {
+            cout <<  "Tidak ada jadwal pada tanggal " << formatDate(targetDate) << "." << RESET << endl;
+        } else {
+            int start = page * PAGE_SIZE;
+            int end = min(start + PAGE_SIZE, total);
+
+            for (int row = 0; row < rowsPerPage; row++) {
+                vector<int> indices;
+                for (int col = 0; col < cols; col++) {
+                    int idx = start + row * cols + col;
+                    if (idx < end) indices.push_back(idx);
+                }
+                if (indices.empty()) break;
+
+                auto getJadwalLine = [&](int idx, int lineNum) -> string {
+                    const Jadwal* j = list[idx];
+                    switch(lineNum) {
+                        case 0: return "ID      : " + j->getIdJadwal();
+                        case 1: return "Kegiatan: " + j->getNamaKegiatan();
+                        case 2: return "Mulai   : " + formatTime(j->getMulai());
+                        case 3: return "Selesai : " + formatTime(j->getSelesai());
+                        case 4: return "";
+                        default: return "";
+                    }
+                };
+
+                bool isLastRow = (start + (row + 1) * cols >= end);
+                for (int lineNum = 0; lineNum < 5; lineNum++) {
+                    if (lineNum == 4 && isLastRow) continue;
+                    for (int col = 0; col < (int)indices.size(); col++) {
+                        int idx = indices[col];
+                        const Jadwal* j = list[idx];
+                        string color = RESET;
+                        string line = getJadwalLine(idx, lineNum);
+
+                        if ((int)line.size() > colWidth - 2)
+                            line = line.substr(0, colWidth - 5) + "...";
+
+                        ostringstream padded;
+                        padded << left << setw(colWidth) << line;
+                        cout << color << padded.str() << RESET;
+                    }
+                    cout << endl;
+                }
+            }
+        }
+
+        cout << string(termCols, '-') << endl;
+        cout << GRAY << "[←/→/↑/↓] atau [N/P] Navigate  [Q] Quit" << RESET << endl;
+        cout.flush();
+
+        termios orig;
+        tcgetattr(STDIN_FILENO, &orig);
+        enableRawMode(orig);
+        int c = readKey();
+        disableRawMode(orig);
+
+        if (c == 'n' && page < totalPages - 1) page++;
+        else if (c == 'p' && page > 0) page--;
+        else if (c == 'q') break;
+    }
+}
+
 // pagination buat hasil search jadwal lintas ruangan
 // sama kayak browseJadwal tapi tiap entry nampilin nama ruangan juga
 void browseHasilSearch(const string& title, const vector<pair<const Jadwal*, string>>& results) {
     int total = results.size();
     int page = 0;
-    time_t now = time(nullptr);
 
     while (true) {
         system("clear");
@@ -282,7 +390,7 @@ void browseHasilSearch(const string& title, const vector<pair<const Jadwal*, str
                 for (int col = 0; col < (int)indices.size(); col++) {
                     int idx = indices[col];
                     const Jadwal* j = results[idx].first;
-                    string color = (j->getSelesai() < now) ? GRAY : RESET;
+                    string color = RESET;
                     string line = getLine(idx, lineNum);
 
                     if ((int)line.size() > colWidth - 2)
