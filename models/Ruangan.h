@@ -11,7 +11,7 @@ class Ruangan {
     private:
         string namaRuangan;
         string id;
-        unordered_map<string, Jadwal> daftarJadwal;
+        map<string, Jadwal> daftarJadwal;
 
     public:
         Ruangan() : namaRuangan(" "), id(" ") {}

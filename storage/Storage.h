@@ -93,6 +93,7 @@ void readJson(const string& file) {
 }
 
 // Buat masukkin data ke json
+// map udah sorted by key, jadi urutan di json selalu konsisten
 void writeJson(const string& file) {
     json data;
 
@@ -121,7 +122,6 @@ void writeJson(const string& file) {
             dr["jadwal"].push_back(dj);
         }
         data["ruangan"].push_back(dr);
-
     }
     // Write dengan ditruncate dlu 
     ofstream File(file, ios::trunc); 

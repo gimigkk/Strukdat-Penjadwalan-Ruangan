@@ -9,7 +9,7 @@ using namespace std;
 // runtime storage kita
 // buat presistent storage kita simpen di file
 // tapi pikirin lagi karena gw ga kepikiran.
-unordered_map<string, Ruangan> daftarRuangan;
+map<string, Ruangan> daftarRuangan;
 
 // Auto generate ID
 int globalJadwalCounter = 1;
