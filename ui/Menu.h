@@ -117,4 +117,109 @@ void browseRuangan() {
     }
 }
 
+// pagination buat jadwal di suatu ruangan
+// multi-column, tiap jadwal tetap multi-line, di-render side by side
+void browseJadwal(const Ruangan& ruangan) {
+    vector<const Jadwal*> list;
+    for (const auto& pair : ruangan.getJadwal())
+        list.push_back(&pair.second);
+
+    // sort dari terbaru ke terlama berdasarkan waktu mulai
+    sort(list.begin(), list.end(), [](const Jadwal* a, const Jadwal* b) {
+        return a->getMulai() > b->getMulai();
+    });
+
+    int total = list.size();
+    int page = 0;
+    time_t now = time(nullptr);
+
+    while (true) {
+        system("clear");
+
+        auto [termCols, termRows] = getTerminalSize();
+
+        // responsive columns
+        int cols;
+        if (termCols < 80) cols = 1;
+        else if (termCols < 160) cols = 2;
+        else cols = 3;
+
+        int colWidth = termCols / cols;
+
+        // tiap entry = 5 baris, sisain 3 buat header/footer
+        int rowsPerPage = (termRows - 3) / 5;
+        if (rowsPerPage < 1) rowsPerPage = 1;
+        int PAGE_SIZE = rowsPerPage * cols;
+        int totalPages = (total + PAGE_SIZE - 1) / PAGE_SIZE;
+
+        cout << GREEN << "Jadwal Ruangan: " << ruangan.getNamaRuangan()
+             << " (Halaman " << page+1 << "/" << totalPages << ")" << RESET << endl;
+        cout << string(termCols, '-') << endl;
+
+        int start = page * PAGE_SIZE;
+        int end = min(start + PAGE_SIZE, total);
+
+        // render per "row" — tiap row = cols entry side by side
+        for (int row = 0; row < rowsPerPage; row++) {
+            // kumpulin entry di row ini
+            vector<int> indices;
+            for (int col = 0; col < cols; col++) {
+                int idx = start + row * cols + col;
+                if (idx < end) indices.push_back(idx);
+            }
+            if (indices.empty()) break;
+
+            // build tiap baris dari entry side by side
+            // format: ID, Kegiatan, Mulai, Selesai, ---
+            auto getJadwalLine = [&](int idx, int lineNum) -> string {
+                const Jadwal* j = list[idx];
+                switch(lineNum) {
+                    case 0: return "ID      : " + j->getIdJadwal();
+                    case 1: return "Kegiatan: " + j->getNamaKegiatan();
+                    case 2: return "Mulai   : " + formatTime(j->getMulai());
+                    case 3: return "Selesai : " + formatTime(j->getSelesai());
+                    case 4: return "";
+                    default: return "";
+                }
+            };
+
+            bool isLastRow = (start + (row + 1) * cols >= end);
+            for (int lineNum = 0; lineNum < 5; lineNum++) {
+                // skip baris kosong kalau ini row terakhir di halaman
+                if (lineNum == 4 && isLastRow) continue;
+                for (int col = 0; col < (int)indices.size(); col++) {
+                    int idx = indices[col];
+                    const Jadwal* j = list[idx];
+                    string color = (j->getSelesai() < now) ? GRAY : RESET;
+                    string line = getJadwalLine(idx, lineNum);
+
+                    // truncate kalau kepanjangan
+                    if ((int)line.size() > colWidth - 2)
+                        line = line.substr(0, colWidth - 5) + "...";
+
+                    // pad dulu baru color, biar setw ga kerusak sama ANSI codes
+                    ostringstream padded;
+                    padded << left << setw(colWidth) << line;
+                    cout << color << padded.str() << RESET;
+                }
+                cout << endl;
+            }
+        }
+
+        cout << string(termCols, '-') << endl;
+        cout << GRAY << "[←/→/↑/↓] atau [N/P] Navigate  [Q] Quit" << RESET << endl;
+        cout.flush();
+
+        termios orig;
+        tcgetattr(STDIN_FILENO, &orig);
+        enableRawMode(orig);
+        int c = readKey();
+        disableRawMode(orig);
+
+        if (c == 'n' && page < totalPages - 1) page++;
+        else if (c == 'p' && page > 0) page--;
+        else if (c == 'q') break;
+    }
+}
+
 #endif

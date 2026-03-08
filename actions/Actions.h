@@ -7,7 +7,7 @@
 
 using namespace std;
 
-void tambahJadwal(unordered_map<string, Ruangan>& daftarRuangan) {
+void tambahJadwal(map<string, Ruangan>& daftarRuangan) {
 
     string idRuangan;
     int thn, bln, hari;
@@ -18,6 +18,7 @@ void tambahJadwal(unordered_map<string, Ruangan>& daftarRuangan) {
     cout << GRAY << "(Tidak tahu ID? Gunakan menu 1 untuk browse ruangan)" << RESET << endl;
     cout << ">> Masukkan ID ruangan: ";
     cin >> idRuangan;
+    transform(idRuangan.begin(), idRuangan.end(), idRuangan.begin(), ::toupper);
 
     auto it = daftarRuangan.find(idRuangan);
     if(it == daftarRuangan.end()) {
@@ -54,16 +55,17 @@ void tambahJadwal(unordered_map<string, Ruangan>& daftarRuangan) {
 
 
 // Ganti tipe fungsi ke string
-string searchJadwalRuangan(const unordered_map<string, Ruangan>& daftarRuangan) { 
+string searchJadwalRuangan(const map<string, Ruangan>& daftarRuangan) { 
     cout << GRAY << "(Tidak tahu ID? Gunakan menu 1 untuk browse ruangan)" << RESET << endl;
     string searchId;
     cout << ">> Masukkan ID Ruangan yang ingin dicari: ";
     cin >> searchId;
+    transform(searchId.begin(), searchId.end(), searchId.begin(), ::toupper);
     cout <<RESET<< endl;
 
     auto it = daftarRuangan.find(searchId);
     if (it != daftarRuangan.end()) {
-        it->second.printJadwal();
+        browseJadwal(it->second);
         return searchId;
     } else {
         cout << "Ruangan dengan ID " << searchId << " tidak ditemukan." <<RESET<< endl;
@@ -71,7 +73,7 @@ string searchJadwalRuangan(const unordered_map<string, Ruangan>& daftarRuangan) 
     }
 }
 
-void searchJadwalByTime(const unordered_map<string, Ruangan>& daftarRuangan) {
+void searchJadwalByTime(const map<string, Ruangan>& daftarRuangan) {
     int thn, bln, hari, jamMulai, menitMulai;
     cout << ">> Tanggal (YYYY MM DD)\t: ";
     cin >> thn >> bln >> hari;
@@ -108,7 +110,7 @@ void searchJadwalByTime(const unordered_map<string, Ruangan>& daftarRuangan) {
 }
 
 // Cari ruangan yang tersedia pada waktu tertentu
-void searchRuanganTersedia(const unordered_map<string, Ruangan>& daftarRuangan) {
+void searchRuanganTersedia(const map<string, Ruangan>& daftarRuangan) {
     int thn, bln, hari, jamMulai, menitMulai, jamSelesai, menitSelesai;
     cout << ">> Tanggal (YYYY MM DD)\t: ";
     cin >> thn >> bln >> hari;
@@ -144,7 +146,7 @@ void searchRuanganTersedia(const unordered_map<string, Ruangan>& daftarRuangan) 
     cout << "---" <<RESET<< endl;
 }
 
-void ubahJadwal(unordered_map<string, Ruangan>& daftarRuangan) {
+void ubahJadwal(map<string, Ruangan>& daftarRuangan) {
     int c;
     string targetIdJadwal, targetIdRuangan, namaKegiatan;
 
@@ -212,6 +214,7 @@ void ubahJadwal(unordered_map<string, Ruangan>& daftarRuangan) {
             string idRuanganBaru;
             cout << ">> Masukkan ID ruangan baru: " << RESET;
             cin >> idRuanganBaru;
+            transform(idRuanganBaru.begin(), idRuanganBaru.end(), idRuanganBaru.begin(), ::toupper);
             it->second.ubahRuangan(targetIdRuangan, idRuanganBaru, targetIdJadwal);
             break;
         }
@@ -220,7 +223,7 @@ void ubahJadwal(unordered_map<string, Ruangan>& daftarRuangan) {
     }
 }
 
-void hapusJadwal(unordered_map<string, Ruangan>& daftarRuangan) {
+void hapusJadwal(map<string, Ruangan>& daftarRuangan) {
     string targetIdRuangan, targetIdJadwal;
 
     cout << '\n' << GREEN << "HAPUS JADWAL" << RESET<< endl;   
