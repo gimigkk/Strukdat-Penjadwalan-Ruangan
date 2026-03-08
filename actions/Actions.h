@@ -1,0 +1,252 @@
+#ifndef ACTIONS_H
+#define ACTIONS_H
+
+#include <bits/stdc++.h>
+#include "../globals.h"
+#include "../ui/Menu.h"
+
+using namespace std;
+
+void tambahJadwal(unordered_map<string, Ruangan>& daftarRuangan) {
+
+    string idRuangan;
+    int thn, bln, hari;
+    int jamMulai, menitMulai;
+    int jamSelesai, menitSelesai;
+    string namaKegiatan;
+
+    printAllRuangan(); cout << endl;
+    cout << ">> Masukkan ID ruangan: ";
+    cin >> idRuangan;
+
+    auto it = daftarRuangan.find(idRuangan);
+    if(it == daftarRuangan.end()) {
+        cout << RED << "Ruangan tidak ditemukan." << RESET << endl;
+        return;
+    }
+    
+    it->second.printAllJadwal();
+    cout << endl;
+    cout << ">> Tanggal (YYYY MM DD): ";
+    cin >> thn >> bln >> hari;
+
+    it->second.printJadwalByDate(makeTime(thn, bln, hari, 0, 0)); cout << endl;
+
+    cout << ">> Waktu mulai (HH MM): ";
+    cin >> jamMulai >> menitMulai;
+
+    cout << ">> Waktu selesai (HH MM): ";
+    cin >> jamSelesai >> menitSelesai;
+
+    cout << ">> Nama kegiatan: ";
+    getline(cin >> ws, namaKegiatan);
+
+    time_t mulai = makeTime(thn, bln, hari, jamMulai, menitMulai);
+    time_t selesai = makeTime(thn, bln, hari, jamSelesai, menitSelesai);
+
+    if(mulai >= selesai) {
+        cout << RED << "Waktu tidak valid." << RESET << endl;
+        return;
+    }
+
+    it->second.tambahJadwalBaru(mulai, selesai, namaKegiatan);
+}
+
+
+// Ganti tipe fungsi ke string
+string searchJadwalRuangan(const unordered_map<string, Ruangan>& daftarRuangan) { 
+    printAllRuangan(); cout << endl;
+    string searchId;
+    cout << ">> Masukkan ID Ruangan yang ingin dicari: ";
+    cin >> searchId;
+    cout <<RESET<< endl;
+
+    auto it = daftarRuangan.find(searchId);
+    if (it != daftarRuangan.end()) {
+        it->second.printJadwal();
+        return searchId;
+    } else {
+        cout << "Ruangan dengan ID " << searchId << " tidak ditemukan." <<RESET<< endl;
+        return "";
+    }
+}
+
+void searchJadwalByTime(const unordered_map<string, Ruangan>& daftarRuangan) {
+    int thn, bln, hari, jamMulai, menitMulai;
+    cout << ">> Tanggal (YYYY MM DD)\t: ";
+    cin >> thn >> bln >> hari;
+
+    cout << ">> Waktu mulai (HH MM)\t: ";
+    cin >> jamMulai >> menitMulai;
+    time_t mulai = makeTime(thn, bln, hari, jamMulai, menitMulai);
+
+    cout <<RESET<< endl;
+
+    cout << "Jadwal yang dimulai pada " << formatHourMinute(mulai) << ",\npada tanggal " << formatDate(mulai) << ":" <<RESET<< endl;
+    cout << "---" <<RESET<< endl;
+    bool found = false;
+    for (const auto& pair : daftarRuangan) {
+        const auto& jadwalMap = pair.second.getJadwal();
+        for (const auto& jadwalPair : jadwalMap) {
+            const Jadwal& jadwal = jadwalPair.second;
+            if (jadwal.getMulai() == mulai) {
+                cout << "ID Ruangan\t: " << pair.second.getId() << endl;
+                cout << "Nama Ruangan\t: " << pair.second.getNamaRuangan() << endl;
+                cout << "ID Jadwal\t: " << jadwal.getIdJadwal() << endl;
+                cout << "Kegiatan\t: " << jadwal.getNamaKegiatan() << endl;
+                cout << "Jam Mulai\t: " << formatTime(jadwal.getMulai()) << endl;
+                cout << "Jam Selesai\t: " << formatTime(jadwal.getSelesai()) << endl;
+                found = true;
+            }
+        }
+    }
+    if (!found) {
+        cout << RED << "Tidak ada." <<RESET<< endl;
+    }
+    cout << "---" <<RESET<< endl;
+
+}
+
+// Cari ruangan yang tersedia pada waktu tertentu
+void searchRuanganTersedia(const unordered_map<string, Ruangan>& daftarRuangan) {
+    int thn, bln, hari, jamMulai, menitMulai, jamSelesai, menitSelesai;
+    cout << ">> Tanggal (YYYY MM DD)\t: ";
+    cin >> thn >> bln >> hari;
+
+    cout << ">> Waktu mulai (HH MM)\t: ";
+    cin >> jamMulai >> menitMulai;
+    time_t mulai = makeTime(thn, bln, hari, jamMulai, menitMulai);
+
+    cout << left << setw(26)<< ">> Waktu selesai (HH MM): ";
+    cin >> jamSelesai >> menitSelesai;
+    time_t selesai = makeTime(thn, bln, hari, jamSelesai, menitSelesai);
+
+    if (mulai >= selesai) {
+        cout << RED << "Waktu tidak valid. Jam selesai harus setelah jam mulai." << RESET << endl;
+        return;
+    }   
+
+    cout <<RESET<< endl;
+
+    cout << "List ruangan tersedia dari " << formatHourMinute(mulai) << " sampai " << formatHourMinute(selesai) << ",\npada tanggal " << formatDate(mulai) << ":" <<RESET<< endl;
+    cout << "---" <<RESET<< endl;
+    bool found = false;
+    for (const auto& pair : daftarRuangan) {
+        
+        if (pair.second.cekKetersediaan(mulai, selesai)) {
+            cout << "ID: " << pair.second.getId() << ", Nama: " << pair.second.getNamaRuangan() <<RESET<< endl;
+            found = true;
+        }
+    }
+    if (!found) {
+        cout << RED << "Tidak ada." <<RESET<< endl;
+    }
+    cout << "---" <<RESET<< endl;
+}
+
+void ubahJadwal(unordered_map<string, Ruangan>& daftarRuangan) {
+    int c;
+    string targetIdJadwal, targetIdRuangan, namaKegiatan;
+
+    cout << '\n' << GREEN << "UPDATE JADWAL" << RESET<< endl;   
+    targetIdRuangan = searchJadwalRuangan(daftarRuangan);
+    
+    if(targetIdRuangan.empty()) {
+        cout << "Maaf, ruangan tidak ditemukan." << endl;
+        return;
+    }
+
+    const auto& dataJadwal = daftarRuangan[targetIdRuangan].getJadwal();
+
+    if(dataJadwal.empty()) {
+        return;
+    }
+
+    cout << '\n' << ">> Pilih id jadwal yang ingin diubah: ";
+    cin >> targetIdJadwal;
+    
+    
+    cout << GREEN <<"\nPilih opsi berikut:" << RESET<< endl;
+    cout << GREEN <<"1. Ubah waktu" << RESET << endl;
+    cout << GREEN <<"2. Ubah nama kegiatan" << RESET << endl;
+    cout << GREEN <<"3. Ubah ruangan" << RESET << endl;
+    cout << RED <<"0. Batal" << RESET << endl;
+    cout << ">> Pilih menu(0-3): ";
+    cin >> c; cout << endl;
+    
+    if(c == 0) {
+        return;
+    }
+    auto it = daftarRuangan.find(targetIdRuangan);
+    switch(c) {
+        case 1: {
+            int thn, bln, hari, jamMulai, menitMulai, jamSelesai, menitSelesai;
+            cout << ">> Tanggal (YYYY MM DD)\t: ";
+            
+            cin >> thn >> bln >> hari;
+            cout << ">> Waktu mulai (HH MM)\t: ";
+            cin >> jamMulai >> menitMulai;
+            time_t mulai = makeTime(thn, bln, hari, jamMulai, menitMulai);
+            cout << left << setw(26)<< ">> Waktu selesai (HH MM): ";
+            cin >> jamSelesai >> menitSelesai;
+            time_t selesai = makeTime(thn, bln, hari, jamSelesai, menitSelesai);
+            cout <<RESET<< endl;
+
+            if (mulai >= selesai) {
+                cout << RED << "Waktu tidak valid. Jam selesai harus setelah jam mulai." << RESET << endl;
+                break;
+            }
+
+            it->second.ubahWaktu(targetIdJadwal, mulai, selesai);
+        }   
+            break;
+        case 2: {
+            string namaKegiatan;
+            cout << ">> Masukkan nama kegiatan: " << RESET;
+            getline(cin >> ws, namaKegiatan);
+
+            it->second.ubahNamaKegiatan(targetIdJadwal, namaKegiatan);
+            break;
+        }
+        case 3: {
+            string idRuanganBaru;
+            cout << ">> Masukkan ID ruangan baru: " << RESET;
+            cin >> idRuanganBaru;
+            it->second.ubahRuangan(targetIdRuangan, idRuanganBaru, targetIdJadwal);
+            break;
+        }
+        default:
+            cout << "Pilihan tidak valid. Silakan coba lagi." << RESET << endl;
+    }
+}
+
+void hapusJadwal(unordered_map<string, Ruangan>& daftarRuangan) {
+    string targetIdRuangan, targetIdJadwal;
+
+    cout << '\n' << GREEN << "HAPUS JADWAL" << RESET<< endl;   
+    targetIdRuangan = searchJadwalRuangan(daftarRuangan);
+    
+    if(targetIdRuangan.empty()) {
+        cout << "Maaf, ruangan tidak ditemukan." << endl;
+        return;
+    }
+
+    const auto& dataJadwal = daftarRuangan[targetIdRuangan].getJadwal();
+
+    if(dataJadwal.empty()) {
+        return;
+    }
+
+    cout << '\n' << ">> Pilih id jadwal yang ingin dihapus: ";
+    cin >> targetIdJadwal;
+
+    auto it = daftarRuangan.find(targetIdRuangan);
+    if(it->second.hapusJadwalById(targetIdJadwal)) {
+        cout << CYAN << "\nJadwal dengan ID " << targetIdJadwal << " di ruangan " << it->second.getNamaRuangan() << " berhasil dihapus." << RESET << endl;
+    } 
+    else {
+        cout << RED << "\nID jadwal tidak ditemukan." << RESET << endl;
+    }
+}
+
+#endif
