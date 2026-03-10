@@ -132,6 +132,8 @@ void browseJadwal(const Ruangan& ruangan) {
     int total = list.size();
     int page = 0;
 
+    time_t now = time(nullptr);
+
     while (true) {
         system("clear");
 
@@ -189,7 +191,7 @@ void browseJadwal(const Ruangan& ruangan) {
                 for (int col = 0; col < (int)indices.size(); col++) {
                     int idx = indices[col];
                     const Jadwal* j = list[idx];
-                    string color = RESET;
+                    string color = (j->getSelesai() < now) ? GRAY : RESET;
                     string line = getJadwalLine(idx, lineNum);
 
                     // truncate kalau kepanjangan
@@ -245,6 +247,7 @@ void browseJadwalByDate(const Ruangan& ruangan, time_t targetDate) {
 
     int total = list.size();
     int page = 0;
+    time_t now = time(nullptr);
 
     while (true) {
         system("clear");
@@ -300,7 +303,7 @@ void browseJadwalByDate(const Ruangan& ruangan, time_t targetDate) {
                     for (int col = 0; col < (int)indices.size(); col++) {
                         int idx = indices[col];
                         const Jadwal* j = list[idx];
-                        string color = RESET;
+                        string color = (j->getSelesai() < now) ? GRAY : RESET;
                         string line = getJadwalLine(idx, lineNum);
 
                         if ((int)line.size() > colWidth - 2)
@@ -336,6 +339,7 @@ void browseJadwalByDate(const Ruangan& ruangan, time_t targetDate) {
 void browseHasilSearch(const string& title, const vector<pair<const Jadwal*, string>>& results) {
     int total = results.size();
     int page = 0;
+    time_t now = time(nullptr);
 
     while (true) {
         system("clear");
@@ -390,7 +394,7 @@ void browseHasilSearch(const string& title, const vector<pair<const Jadwal*, str
                 for (int col = 0; col < (int)indices.size(); col++) {
                     int idx = indices[col];
                     const Jadwal* j = results[idx].first;
-                    string color = RESET;
+                    string color = (j->getSelesai() < now) ? GRAY : RESET;
                     string line = getLine(idx, lineNum);
 
                     if ((int)line.size() > colWidth - 2)
