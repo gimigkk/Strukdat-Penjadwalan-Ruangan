@@ -66,9 +66,12 @@ void readJson(const string& file) {
         cout << RED << "File not found" << endl;
         return;
     } 
-    // Parse 
-    File >> data;
-    File.close();
+    // Parse — di-timer sendiri karena ini bukan operasi map
+    {
+        ScopeTimer t("json::parse (readJson)");
+        File >> data;
+        File.close();
+    }
 
     // Bersihin runtime storage
     daftarRuangan.clear();
@@ -135,9 +138,12 @@ void writeJson(const string& file) {
             data["ruangan"].push_back(dr);
         }
     }
-    // Write dengan ditruncate dlu 
-    ofstream File(file, ios::trunc); 
-    File << data.dump(4);
+    // Write dengan ditruncate dlu. di-timer sendiri karena ini bukan operasi map
+    {
+        ScopeTimer t("json::write (writeJson)");
+        ofstream File(file, ios::trunc); 
+        File << data.dump(4);
+    }
 }
 
 #endif

@@ -1,7 +1,7 @@
 // note untuk struktur datanya:
 // Ruangan punya daftar jadwal
 // Jadwal punya waktu mulai, waktu selesai, nama kegiatan, id
-// Ruangan di simpen pake hashmap biar gampang aksesnya O(1)
+// Ruangan di simpen pake hashmap biar gampang aksesnya O(1)    <- tapi gw ganti jadi map wkwkkwkw -gilang
 // Key di hashmap itu id ruangan.
 
 #include "storage/Storage.h"
@@ -11,7 +11,7 @@
 
 int main (){
     // Akses json
-    string file = "dummy.json";
+    string file = "holyshit.json";
 
     readJson(file);
     flushLatencyPrints(); // cetak Latency Report bulk-insert saat startup
@@ -81,7 +81,7 @@ int main (){
         }
     }
     
-    cout << CYAN << "\n--- Terima kasih telah menggunakan layanan ini :D ---" << RESET << endl;
+    cout << CYAN << "\n--- Byeee :D (writing to json) ---" << RESET << endl;
     writeJson(file);
 
     printLatencySummary();
