@@ -40,16 +40,16 @@
                     "selesai": 1768575600
                 },
                 {
-                    "id": "J0008",
-                    "mulai": 1768924800,
-                    "namaKegiatan": "Briefing Penjaminan Mutu",
-                    "selesai": 1768928400
-                },
-                {
                     "id": "J0009",
                     "mulai": 1769068800,
                     "namaKegiatan": "Briefing Transformasi Digital",
                     "selesai": 1769076000
+                },
+                {
+                    "id": "J1001",
+                    "mulai": 1773378000,
+                    "namaKegiatan": "Ngopi",
+                    "selesai": 1773381600
                 }
             ],
             "namaRuangan": "Ruang Rapat Anggrek Gedung A Lt.1"
@@ -116,6 +116,12 @@
                     "mulai": 1769677200,
                     "namaKegiatan": "Diskusi Penjaminan Mutu",
                     "selesai": 1769682600
+                },
+                {
+                    "id": "J1002",
+                    "mulai": 1773410400,
+                    "namaKegiatan": "asdxx",
+                    "selesai": 1773417600
                 }
             ],
             "namaRuangan": "Ruang Sidang Anggrek Gedung A Lt.2"

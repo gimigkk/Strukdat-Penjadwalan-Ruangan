@@ -7,12 +7,14 @@
 #include "storage/Storage.h"
 #include "ui/Menu.h"
 #include "actions/Actions.h"
+#include "latency.h"
 
 int main (){
     // Akses json
     string file = "dummy.json";
 
     readJson(file);
+    flushLatencyPrints(); // cetak Latency Report bulk-insert saat startup
 
     /// Program Loop
     while (true) {
@@ -46,6 +48,7 @@ int main (){
         switch(choice) {
             case 1: {
                 browseRuangan();
+                flushLatencyPrints(); // cetak Latency Report setelah user selesai browse
                 break;
             }
             case 2: {
@@ -80,6 +83,8 @@ int main (){
     
     cout << CYAN << "\n--- Terima kasih telah menggunakan layanan ini :D ---" << RESET << endl;
     writeJson(file);
+
+    printLatencySummary();
 
     return 0;
 }

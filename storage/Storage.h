@@ -4,6 +4,7 @@
 #include <bits/stdc++.h>
 #include "../nlohmann/json.hpp"
 #include "../globals.h"
+#include "../latency.h"
 
 using namespace std;
 using json = nlohmann::json;
@@ -16,6 +17,9 @@ void Ruangan::tambahJadwalBaru(time_t mulai, time_t selesai, const string& namaK
 
     string newId = generateJadwalId();
     Jadwal j(mulai, selesai, namaKegiatan, newId);
+
+    // Ukur waktu insert ke map jadwal
+    ScopeTimer t("map::insert (tambahJadwal)");
     setJadwal(j);
 
     cout << CYAN << "Jadwal berhasil ditambahkan dengan ID " << newId << RESET << endl;
@@ -44,8 +48,10 @@ void Ruangan::ubahRuangan(const string& idRuanganLama, const string& idRuanganBa
     }  
 
     // Tambah jadwal di ruangan baru
-    ruanganBaru.setJadwal(dataJadwal);
     // Hapus jadwal di ruangan lama
+    // Kedua operasi ini satu transaksi, di-timer bareng
+    ScopeTimer t("map::insert+erase (ubahRuangan)");
+    ruanganBaru.setJadwal(dataJadwal);
     ruanganLama.hapusJadwalById(idJadwal);
 
     cout << CYAN << "\nJadwal telah dipindah dari " << ruanganLama.getNamaRuangan() << " ke " << ruanganBaru.getNamaRuangan() << RESET << endl;
@@ -70,24 +76,27 @@ void readJson(const string& file) {
     int maxJadwalNumber = 0;
 
     // Masukkin ke map
-    for(auto& ruangan : data["ruangan"]) {
-        string id = ruangan["id"];
-        string namaRuangan = ruangan["namaRuangan"];
+    {
+        ScopeTimer t("map::bulk-insert (readJson)");
+        for(auto& ruangan : data["ruangan"]) {
+            string id = ruangan["id"];
+            string namaRuangan = ruangan["namaRuangan"];
 
-        Ruangan dataRuangan(namaRuangan, id);
+            Ruangan dataRuangan(namaRuangan, id);
 
-        for(auto& jadwal : ruangan["jadwal"]) {
-            string id = jadwal["id"];
-            string namaKegiatan = jadwal["namaKegiatan"];
-            time_t mulai = jadwal["mulai"];
-            time_t selesai = jadwal["selesai"];
+            for(auto& jadwal : ruangan["jadwal"]) {
+                string id = jadwal["id"];
+                string namaKegiatan = jadwal["namaKegiatan"];
+                time_t mulai = jadwal["mulai"];
+                time_t selesai = jadwal["selesai"];
 
-            Jadwal dataJadwal(mulai, selesai, namaKegiatan, id);
-            dataRuangan.loadJadwal(dataJadwal);
+                Jadwal dataJadwal(mulai, selesai, namaKegiatan, id);
+                dataRuangan.loadJadwal(dataJadwal);
 
-            maxJadwalNumber = max(maxJadwalNumber, extractJadwalNumber(id));
+                maxJadwalNumber = max(maxJadwalNumber, extractJadwalNumber(id));
+            }
+            daftarRuangan.insert({dataRuangan.getId(), dataRuangan});
         }
-        daftarRuangan.insert({dataRuangan.getId(), dataRuangan});
     }
     globalJadwalCounter = maxJadwalNumber + 1;
 }
@@ -99,29 +108,32 @@ void writeJson(const string& file) {
 
     // Bikin array of ruangan
     data["ruangan"] = json::array();
-    for(auto& r : daftarRuangan) {
-        Ruangan& ruangan = r.second;
-        json dr; // data ruangan
+    {
+        ScopeTimer t("map::scan (writeJson)");
+        for(auto& r : daftarRuangan) {
+            Ruangan& ruangan = r.second;
+            json dr; // data ruangan
 
-        dr["id"] = ruangan.getId();
-        dr["namaRuangan"] = ruangan.getNamaRuangan();
+            dr["id"] = ruangan.getId();
+            dr["namaRuangan"] = ruangan.getNamaRuangan();
 
-        // bikin array of jadwal
-        dr["jadwal"] = json::array();
+            // bikin array of jadwal
+            dr["jadwal"] = json::array();
 
-        for(auto& j: ruangan.getJadwal()) {
-            const Jadwal& jadwal = j.second;
-            
-            json dj; // data jadwal
+            for(auto& j: ruangan.getJadwal()) {
+                const Jadwal& jadwal = j.second;
+                
+                json dj; // data jadwal
 
-            dj["id"] = jadwal.getIdJadwal();
-            dj["namaKegiatan"] = jadwal.getNamaKegiatan();
-            dj["mulai"] = jadwal.getMulai();
-            dj["selesai"] = jadwal.getSelesai();
+                dj["id"] = jadwal.getIdJadwal();
+                dj["namaKegiatan"] = jadwal.getNamaKegiatan();
+                dj["mulai"] = jadwal.getMulai();
+                dj["selesai"] = jadwal.getSelesai();
 
-            dr["jadwal"].push_back(dj);
+                dr["jadwal"].push_back(dj);
+            }
+            data["ruangan"].push_back(dr);
         }
-        data["ruangan"].push_back(dr);
     }
     // Write dengan ditruncate dlu 
     ofstream File(file, ios::trunc); 

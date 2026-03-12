@@ -6,6 +6,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include "../globals.h"
+#include "../latency.h"
 
 using namespace std;
 
@@ -57,10 +58,18 @@ pair<int,int> getTerminalSize() {
 // buat feature 1, pengganti printAllRuangan karena banyak data.
 void browseRuangan() {
     vector<pair<string, string>> list;
-    for (const auto& pair : daftarRuangan)
-        list.push_back({pair.second.getId(), pair.second.getNamaRuangan()});
+    {
+        // Ukur waktu traversal seluruh map ruangan
+        ScopeTimer t("map::scan (browseRuangan)");
+        for (const auto& pair : daftarRuangan)
+            list.push_back({pair.second.getId(), pair.second.getNamaRuangan()});
+    }
 
     int total = list.size();
+    if (total == 0) {
+        cout << RED << "Tidak ada ruangan tersedia." << RESET << endl;
+        return;
+    }
     int page = 0;
 
     while (true) {
@@ -160,7 +169,7 @@ void browseJadwal(const Ruangan& ruangan) {
         int start = page * PAGE_SIZE;
         int end = min(start + PAGE_SIZE, total);
 
-        // render per "row" — tiap row = cols entry side by side
+        // render per "row" - tiap row = cols entry side by side
         for (int row = 0; row < rowsPerPage; row++) {
             // kumpulin entry di row ini
             vector<int> indices;
@@ -210,6 +219,9 @@ void browseJadwal(const Ruangan& ruangan) {
         cout << string(termCols, '-') << endl;
         cout << GRAY << "[←/→/↑/↓] atau [N/P] Navigate  [Q] Quit" << RESET << endl;
         cout.flush();
+
+        // langsung keluar kalau tidak ada data
+        if (total == 0) break;
 
         termios orig;
         tcgetattr(STDIN_FILENO, &orig);
@@ -322,6 +334,9 @@ void browseJadwalByDate(const Ruangan& ruangan, time_t targetDate) {
         cout << GRAY << "[←/→/↑/↓] atau [N/P] Navigate  [Q] Quit" << RESET << endl;
         cout.flush();
 
+        // langsung keluar kalau tidak ada data
+        if (total == 0) break;
+
         termios orig;
         tcgetattr(STDIN_FILENO, &orig);
         enableRawMode(orig);
@@ -332,6 +347,7 @@ void browseJadwalByDate(const Ruangan& ruangan, time_t targetDate) {
         else if (c == 'p' && page > 0) page--;
         else if (c == 'q') break;
     }
+    cout << endl;
 }
 
 // pagination buat hasil search jadwal lintas ruangan
