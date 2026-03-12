@@ -11,7 +11,7 @@
 
 int main (){
     // Akses json
-    string file = "holyshit.json";
+    string file = "dummy.json";
 
     readJson(file);
     flushLatencyPrints(); // cetak Latency Report bulk-insert saat startup
