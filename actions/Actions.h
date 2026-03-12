@@ -50,6 +50,11 @@ void tambahJadwal(map<string, Ruangan>& daftarRuangan) {
         return;
     }
 
+    if(!it->second.cekKetersediaan(mulai, selesai)) {
+        cout << RED << "Jadwal bentrok dengan jadwal lain di ruangan ini." << RESET << endl;
+        return;
+    }
+
     it->second.tambahJadwalBaru(mulai, selesai, namaKegiatan);
 }
 
