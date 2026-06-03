@@ -6596,42 +6596,6 @@
                     "mulai": 1779879600,
                     "namaKegiatan": "Presentasi Administrasi",
                     "selesai": 1779885000
-                },
-                {
-                    "id": "J0995",
-                    "mulai": 1780059600,
-                    "namaKegiatan": "Meeting Evaluasi Sistem Informasi",
-                    "selesai": 1780065000
-                },
-                {
-                    "id": "J0996",
-                    "mulai": 1780236000,
-                    "namaKegiatan": "Workshop Kurikulum",
-                    "selesai": 1780241400
-                },
-                {
-                    "id": "J0997",
-                    "mulai": 1780412400,
-                    "namaKegiatan": "Diskusi Penjaminan Mutu",
-                    "selesai": 1780419600
-                },
-                {
-                    "id": "J0998",
-                    "mulai": 1780588800,
-                    "namaKegiatan": "Meeting Evaluasi Divisi IT",
-                    "selesai": 1780594200
-                },
-                {
-                    "id": "J0999",
-                    "mulai": 1780732800,
-                    "namaKegiatan": "Rapat Koordinasi Keamanan Data",
-                    "selesai": 1780738200
-                },
-                {
-                    "id": "J1000",
-                    "mulai": 1780909200,
-                    "namaKegiatan": "Diskusi Keamanan Data",
-                    "selesai": 1780914600
                 }
             ],
             "namaRuangan": "Ruang Workshop Puspa Gedung A Lt.5"
