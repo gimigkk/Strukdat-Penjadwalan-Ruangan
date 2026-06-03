@@ -13,20 +13,24 @@ using namespace std;
 void enableRawMode(termios& orig) {
     termios raw = orig;
     raw.c_lflag &= ~(ICANON | ECHO);
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+    tcsetattr(STDIN_FILENO, TCSANOW, &raw);
 }
 
 void disableRawMode(termios& orig) {
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig);
+    tcsetattr(STDIN_FILENO, TCSANOW, &orig);
 }
 
 int readKey() {
     char c;
-    read(STDIN_FILENO, &c, 1);
+    while (true) {
+        if (read(STDIN_FILENO, &c, 1) <= 0) return 'q';
+        if (c != '\n' && c != '\r') break;
+    }
+
     if (c == '\033') {
         char seq[2];
-        read(STDIN_FILENO, &seq[0], 1);
-        read(STDIN_FILENO, &seq[1], 1);
+        if (read(STDIN_FILENO, &seq[0], 1) <= 0) return 'q';
+        if (read(STDIN_FILENO, &seq[1], 1) <= 0) return 'q';
         if (seq[0] == '[') {
             if (seq[1] == 'C') return 'n';
             if (seq[1] == 'D') return 'p';
@@ -38,8 +42,10 @@ int readKey() {
 }
 
 pair<int,int> getTerminalSize() {
-    struct winsize w;
-    ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+    struct winsize w = {};
+    if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) == -1 || w.ws_col == 0 || w.ws_row == 0) {
+        return {120, 25};
+    }
     return {w.ws_col, w.ws_row};
 }
 

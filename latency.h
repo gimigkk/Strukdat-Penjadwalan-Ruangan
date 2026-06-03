@@ -259,12 +259,21 @@ void printMemorySummary() {
     row("Memory Checkpoint", "RSS KiB", "Delta KiB", "HWM KiB", "Size KiB");
     div();
 
+    long totalDeltaKb = 0;
+    long peakHwmKb = -1;
+
     for (int i = 0; i < (int)memoryLog.size(); i++) {
         const auto& r = memoryLog[i];
+        totalDeltaKb += r.deltaRssKb;
+        if (r.vmHwmKb > peakHwmKb) peakHwmKb = r.vmHwmKb;
+
         row(r.label, fmtKb(r.vmRssKb), fmtDelta(r.deltaRssKb), fmtKb(r.vmHwmKb), fmtKb(r.vmSizeKb));
         if (i + 1 < (int)memoryLog.size()) mid();
     }
 
+    const auto& last = memoryLog.back();
+    div();
+    row("Total Delta", fmtKb(last.vmRssKb), fmtDelta(totalDeltaKb), fmtKb(peakHwmKb), fmtKb(last.vmSizeKb));
     bot();
 }
 
