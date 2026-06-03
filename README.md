@@ -44,6 +44,8 @@ Keuntungan pendekatan ini:
 ```
 proyek/
 ├── main.cpp               — entry point, program loop
+├── main2.cpp              — entry point versi vector
+├── CMakeLists.txt         — konfigurasi build & run dengan CMake
 ├── globals.h              — runtime storage & ID generation
 ├── utils.h                — helper functions (time formatting, input)
 ├── models/
@@ -250,12 +252,77 @@ Semua halaman pagination menggunakan raw mode (`termios`) agar input langsung te
 ---
 
 
-Folder `bin` telah ditambahkan ke `.gitignore`
+## Cara Menjalankan Program
+
+Project ini sudah menggunakan CMake, tetapi command run sudah disederhanakan lewat `Makefile` dan script `run`.
+
+### Cara paling singkat
+
 ```bash
-g++ -I. -std=c++17 main.cpp -o ./bin/main && ./bin/main
+make main
 ```
 
-Pastikan folder `nlohmann/` berisi `json.hpp` ada di direktori yang sama dengan `main.cpp`.
+Command di atas menjalankan implementasi `map` dari `main.cpp`.
+
+```bash
+make main2
+```
+
+Command di atas menjalankan implementasi `vector` dari `main2.cpp`.
+
+Alternatif lain:
+
+```bash
+./run main
+./run main2
+```
+
+### Memilih variasi dataset
+
+Secara default program memakai `dummy1.json`. Untuk benchmark, tersedia tiga ukuran dataset:
+
+| File | Jumlah Ruangan | Total Jadwal | Ukuran |
+|---|---:|---:|---:|
+| `dummy1.json` | 100 | 1006 | 230 KB |
+| `dummy_mid.json` | 500 | 25000 | 5.3 MB |
+| `dummy2.json` | 1000 | 100001 | 22 MB |
+
+Jalankan dataset sedang dengan:
+
+```bash
+make main DATA=dummy_mid.json
+make main2 DATA=dummy_mid.json
+```
+
+Atau lewat script `run`:
+
+```bash
+./run main dummy_mid.json
+./run main2 dummy_mid.json
+```
+
+### Build tanpa langsung menjalankan
+
+Jika hanya ingin compile semua target:
+
+```bash
+make build
+```
+
+### Command CMake langsung
+
+Jika ingin memakai CMake tanpa wrapper:
+
+```bash
+cmake -S . -B build
+cmake --build build
+cmake --build build --target run-main
+cmake --build build --target run-main2
+cmake --build build --target run-map
+cmake --build build --target run-vector
+```
+
+Pastikan folder `nlohmann/` berisi `json.hpp` ada di direktori yang sama dengan `main.cpp` dan `main2.cpp`.
 
 ---
 
@@ -270,11 +337,24 @@ Pastikan folder `nlohmann/` berisi `json.hpp` ada di direktori yang sama dengan 
 
 ---
 
-# Pengembangan Selanjutnya
+# Implementasi Saat Ini
 
-Untuk tahap akhir proyek, sistem akan diperluas dengan:
+Sistem saat ini sudah mencakup:
 
-- Implementasi **minimal dua struktur data berbeda** dan perbandingan performa
-- Grafik perbandingan waktu eksekusi & penggunaan memori
-- Analisis dampak pertumbuhan data terhadap performa
-- Rekomendasi struktur data terbaik untuk sistem manajemen jadwal
+- Implementasi struktur data **`map`** pada `main.cpp`
+- Implementasi struktur data **`vector`** pada `main2.cpp`
+- Perbandingan waktu eksekusi operasi struktur data menggunakan `ScopeTimer`
+- Laporan ringkasan waktu eksekusi dalam satuan milidetik (`ms`)
+- Pengukuran penggunaan memori proses Linux melalui `/proc/self/status`
+- Laporan memori berupa `VmRSS`, `Delta RSS`, `VmHWM`, dan `VmSize`
+- Variasi dataset kecil, sedang, dan besar untuk melihat dampak pertumbuhan data
+- Build dan run program menggunakan CMake
+- Shortcut command melalui `Makefile` dan script `run`
+
+Dataset yang tersedia:
+
+| File | Jumlah Ruangan | Total Jadwal |
+|---|---:|---:|
+| `dummy1.json` | 100 | 1006 |
+| `dummy_mid.json` | 500 | 25000 |
+| `dummy2.json` | 1000 | 100001 |

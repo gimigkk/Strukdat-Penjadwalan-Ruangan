@@ -3,5 +3,6 @@
 *.out
 booking
 /bin/
+build/
 .vscodeholyshit.json
 holyshit.json

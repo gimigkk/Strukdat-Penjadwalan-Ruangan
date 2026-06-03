@@ -1202,6 +1202,24 @@
                     "mulai": 1776589200,
                     "namaKegiatan": "Meeting Evaluasi Administrasi",
                     "selesai": 1776596400
+                },
+                {
+                    "id": "J1008",
+                    "mulai": 1780455600,
+                    "namaKegiatan": "Praktikum",
+                    "selesai": 1780462800
+                },
+                {
+                    "id": "J1009",
+                    "mulai": 1780462800,
+                    "namaKegiatan": "Praktikum 2",
+                    "selesai": 1780466400
+                },
+                {
+                    "id": "J1010",
+                    "mulai": 1780466400,
+                    "namaKegiatan": "Praktikum 3",
+                    "selesai": 1780470000
                 }
             ],
             "namaRuangan": "Ruang Diskusi Melati Gedung A Lt.3"
@@ -2542,18 +2560,6 @@
                     "selesai": 1768554000
                 },
                 {
-                    "id": "J0382",
-                    "mulai": 1768726800,
-                    "namaKegiatan": "Kelas Divisi Operasional",
-                    "selesai": 1768730400
-                },
-                {
-                    "id": "J0383",
-                    "mulai": 1768903200,
-                    "namaKegiatan": "Kelas Sistem Informasi",
-                    "selesai": 1768908600
-                },
-                {
                     "id": "J0384",
                     "mulai": 1769079600,
                     "namaKegiatan": "Pelatihan Pengembangan Produk",
@@ -2594,6 +2600,12 @@
                     "mulai": 1770109200,
                     "namaKegiatan": "Sosialisasi Layanan Pelanggan",
                     "selesai": 1770112800
+                },
+                {
+                    "id": "J1007",
+                    "mulai": 1768557600,
+                    "namaKegiatan": "Praktikum",
+                    "selesai": 1768561200
                 }
             ],
             "namaRuangan": "Ruang Training Cendana Gedung A Lt.4"

@@ -11,10 +11,15 @@
 
 int main (){
     // Akses json
-    string file = "dummy1.json";
+    const char* dataFile = getenv("DATA_FILE");
+    string file = (dataFile && dataFile[0] != '\0') ? dataFile : "dummy1.json";
+    cout << GRAY << "Data file: " << file << RESET << "\n";
 
+    recordMemoryUsage("map::startup baseline");
     readJson(file);
+    recordMemoryUsage("map::after readJson");
     flushLatencyPrints(); // cetak Latency Report bulk-insert saat startup
+    flushMemoryPrints();
 
     /// Program Loop
     while (true) {
@@ -45,46 +50,63 @@ int main (){
 
         cout <<RESET<< endl;
 
+        string memoryCheckpoint;
         switch(choice) {
             case 1: {
                 browseRuangan();
-                flushLatencyPrints(); // cetak Latency Report setelah user selesai browse
+                memoryCheckpoint = "map::after browseRuangan";
                 break;
             }
             case 2: {
                 tambahJadwal(daftarRuangan);
+                memoryCheckpoint = "map::after tambahJadwal";
                 break;
             }
             case 3: {
                 searchJadwalRuangan(daftarRuangan);
+                memoryCheckpoint = "map::after searchJadwalRuangan";
                 break;
             }
             case 4: {
                 searchJadwalByTime(daftarRuangan);
+                memoryCheckpoint = "map::after searchJadwalByTime";
                 break;
             }
             case 5: {
                 searchRuanganTersedia(daftarRuangan);
+                memoryCheckpoint = "map::after searchRuanganTersedia";
                 break;
             }
             case 6: {
                 ubahJadwal(daftarRuangan);
+                memoryCheckpoint = "map::after ubahJadwal";
                 break;
             }
             case 7: {
                 hapusJadwal(daftarRuangan);
+                memoryCheckpoint = "map::after hapusJadwal";
                 break;
             }
             default:
                 cout << "Pilihan tidak valid. Silakan coba lagi." <<RESET<< endl;
                 break;
         }
+
+        if (!memoryCheckpoint.empty()) {
+            recordMemoryUsage(memoryCheckpoint);
+            flushLatencyPrints();
+            flushMemoryPrints();
+        }
     }
     
     cout << CYAN << "\n--- Byeee :D (writing to json) ---" << RESET << endl;
     writeJson(file);
+    recordMemoryUsage("map::after writeJson");
+    flushLatencyPrints();
+    flushMemoryPrints();
 
     printLatencySummary();
+    printMemorySummary();
 
     return 0;
 }

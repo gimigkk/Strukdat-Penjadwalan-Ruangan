@@ -6,10 +6,15 @@
 
 int main (){
     // Akses json
-    string file = "dummy1.json";
+    const char* dataFile = getenv("DATA_FILE");
+    string file = (dataFile && dataFile[0] != '\0') ? dataFile : "dummy1.json";
+    cout << GRAY << "Data file: " << file << RESET << "\n";
 
+    recordMemoryUsage("vector::startup baseline");
     readJson(file);
+    recordMemoryUsage("vector::after readJson");
     flushLatencyPrints(); // cetak Latency Report bulk-insert saat startup
+    flushMemoryPrints();
 
     /// Program Loop
     while (true) {
@@ -40,46 +45,63 @@ int main (){
 
         cout <<RESET<< endl;
 
+        string memoryCheckpoint;
         switch(choice) {
             case 1: {
                 browseRuangan();
-                flushLatencyPrints(); // cetak Latency Report setelah user selesai browse
+                memoryCheckpoint = "vector::after browseRuangan";
                 break;
             }
             case 2: {
                 tambahJadwal(daftarRuangan);
+                memoryCheckpoint = "vector::after tambahJadwal";
                 break;
             }
             case 3: {
                 searchJadwalRuangan(daftarRuangan);
+                memoryCheckpoint = "vector::after searchJadwalRuangan";
                 break;
             }
             case 4: {
                 searchJadwalByTime(daftarRuangan);
+                memoryCheckpoint = "vector::after searchJadwalByTime";
                 break;
             }
             case 5: {
                 searchRuanganTersedia(daftarRuangan);
+                memoryCheckpoint = "vector::after searchRuanganTersedia";
                 break;
             }
             case 6: {
                 ubahJadwal(daftarRuangan);
+                memoryCheckpoint = "vector::after ubahJadwal";
                 break;
             }
             case 7: {
                 hapusJadwal(daftarRuangan);
+                memoryCheckpoint = "vector::after hapusJadwal";
                 break;
             }
             default:
                 cout << "Pilihan tidak valid. Silakan coba lagi." <<RESET<< endl;
                 break;
         }
+
+        if (!memoryCheckpoint.empty()) {
+            recordMemoryUsage(memoryCheckpoint);
+            flushLatencyPrints();
+            flushMemoryPrints();
+        }
     }
     
     cout << CYAN << "\n--- Byeee :D (writing to json) ---" << RESET << endl;
     writeJson(file);
+    recordMemoryUsage("vector::after writeJson");
+    flushLatencyPrints();
+    flushMemoryPrints();
 
     printLatencySummary();
+    printMemorySummary();
 
     return 0;
 }

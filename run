@@ -1,0 +1,26 @@
+#!/usr/bin/env sh
+
+set -eu
+
+DATA_FILE_ARG="${2:-${DATA_FILE:-dummy1.json}}"
+
+case "${1:-main}" in
+    main|map)
+        cmake -S . -B build >/dev/null
+        cmake --build build --target main_map -- -s
+        DATA_FILE="$DATA_FILE_ARG" ./build/main_map
+        ;;
+    main2|vector)
+        cmake -S . -B build >/dev/null
+        cmake --build build --target main_vector -- -s
+        DATA_FILE="$DATA_FILE_ARG" ./build/main_vector
+        ;;
+    build)
+        cmake -S . -B build >/dev/null
+        cmake --build build -- -s
+        ;;
+    *)
+        echo "Usage: ./run [main|main2|map|vector|build] [data-file]"
+        exit 1
+        ;;
+esac

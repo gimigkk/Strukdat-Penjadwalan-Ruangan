@@ -17,8 +17,28 @@ struct LatencyRecord {
     double ms;
 };
 
+struct MemoryUsage {
+    long vmSizeKb = -1;
+    long vmRssKb = -1;
+    long vmHwmKb = -1;
+    bool ok = false;
+};
+
+struct MemoryRecord {
+    string label;
+    long vmSizeKb;
+    long vmRssKb;
+    long vmHwmKb;
+    long deltaRssKb;
+};
+
 static vector<LatencyRecord> latencyLog;
 static size_t latencyPrintedIdx = 0; // indeks entri terakhir yang sudah dicetak
+
+static vector<MemoryRecord> memoryLog;
+static size_t memoryPrintedIdx = 0;
+static bool memoryLastRssReady = false;
+static long memoryLastRssKb = 0;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -27,6 +47,57 @@ static size_t latencyPrintedIdx = 0; // indeks entri terakhir yang sudah dicetak
 // Rekam dulu, cetak nanti lewat flushLatencyPrints()
 static void record(const string& label, double ms) {
     latencyLog.push_back({label, ms});
+}
+
+static bool parseStatusKb(const string& line, const string& key, long& outKb) {
+    if (line.rfind(key, 0) != 0) return false;
+
+    string unit;
+    stringstream ss(line.substr(key.size()));
+    ss >> outKb >> unit;
+    return !ss.fail();
+}
+
+// Baca penggunaan memori proses dari /proc/self/status (Linux).
+static MemoryUsage readProcessMemoryUsage() {
+    MemoryUsage usage;
+    ifstream status("/proc/self/status");
+    if (!status.is_open()) return usage;
+
+    string line;
+    while (getline(status, line)) {
+        parseStatusKb(line, "VmSize:", usage.vmSizeKb);
+        parseStatusKb(line, "VmRSS:", usage.vmRssKb);
+        parseStatusKb(line, "VmHWM:", usage.vmHwmKb);
+    }
+
+    usage.ok = usage.vmSizeKb >= 0 || usage.vmRssKb >= 0 || usage.vmHwmKb >= 0;
+    return usage;
+}
+
+static string fmtKb(long kb) {
+    if (kb < 0) return "-";
+    return to_string(kb);
+}
+
+inline void recordMemoryUsage(const string& label) {
+    MemoryUsage usage = readProcessMemoryUsage();
+    if (!usage.ok) {
+        cout << RED << "ERR: Gagal membaca /proc/self/status untuk cek memori." << RESET << "\n";
+        return;
+    }
+
+    long delta = 0;
+    if (memoryLastRssReady && usage.vmRssKb >= 0) {
+        delta = usage.vmRssKb - memoryLastRssKb;
+    }
+
+    memoryLog.push_back({label, usage.vmSizeKb, usage.vmRssKb, usage.vmHwmKb, delta});
+
+    if (usage.vmRssKb >= 0) {
+        memoryLastRssKb = usage.vmRssKb;
+        memoryLastRssReady = true;
+    }
 }
 
 // Cetak semua entri yang belum dicetak - panggil setelah browse UI selesai
@@ -38,6 +109,20 @@ inline void flushLatencyPrints() {
              << fixed << setprecision(4) << latencyLog[i].ms << " ms" << RESET << "\n";
     }
     latencyPrintedIdx = latencyLog.size();
+}
+
+inline void flushMemoryPrints() {
+    if (memoryPrintedIdx >= memoryLog.size()) return;
+    cout << "\n";
+    for (size_t i = memoryPrintedIdx; i < memoryLog.size(); i++) {
+        cout << GRAY << "Memory Report: " << memoryLog[i].label
+             << ": VmRSS " << fmtKb(memoryLog[i].vmRssKb) << " KiB"
+             << " (Delta RSS " << showpos << memoryLog[i].deltaRssKb << noshowpos << " KiB)"
+             << ", VmHWM " << fmtKb(memoryLog[i].vmHwmKb) << " KiB"
+             << ", VmSize " << fmtKb(memoryLog[i].vmSizeKb) << " KiB"
+             << RESET << "\n";
+    }
+    memoryPrintedIdx = memoryLog.size();
 }
 
 // Repeats a multi-byte unicode string n times (needed for box-drawing chars)
@@ -137,6 +222,49 @@ void printLatencySummary() {
 
     div();
     row("Total", to_string(grand_n), "", "", fmt(grand_total));
+    bot();
+}
+
+void printMemorySummary() {
+    if (memoryLog.empty()) return;
+
+    const int W_OP    = 34;
+    const int W_NUM   = 11;
+
+    auto seg  = [&](int w) { return rep("─", w + 2); };
+    auto segD = [&](int w) { return rep("═", w + 2); };
+
+    auto top = [&]() { cout << "┌" << seg(W_OP)  << "┬" << seg(W_NUM) << "┬" << seg(W_NUM) << "┬" << seg(W_NUM) << "┬" << seg(W_NUM) << "┐\n"; };
+    auto mid = [&]() { cout << "├" << seg(W_OP)  << "┼" << seg(W_NUM) << "┼" << seg(W_NUM) << "┼" << seg(W_NUM) << "┼" << seg(W_NUM) << "┤\n"; };
+    auto div = [&]() { cout << "╞" << segD(W_OP) << "╪" << segD(W_NUM)<< "╪" << segD(W_NUM)<< "╪" << segD(W_NUM)<< "╪" << segD(W_NUM)<< "╡\n"; };
+    auto bot = [&]() { cout << "└" << seg(W_OP)  << "┴" << seg(W_NUM) << "┴" << seg(W_NUM) << "┴" << seg(W_NUM) << "┴" << seg(W_NUM) << "┘\n"; };
+
+    auto row = [&](const string& op, const string& rss,
+                   const string& delta, const string& hwm, const string& size) {
+        cout << "│ " << left  << setw(W_OP)  << op.substr(0, W_OP)
+             << " │ " << right << setw(W_NUM) << rss
+             << " │ " << right << setw(W_NUM) << delta
+             << " │ " << right << setw(W_NUM) << hwm
+             << " │ " << right << setw(W_NUM) << size
+             << " │\n";
+    };
+
+    auto fmtDelta = [](long kb) -> string {
+        string sign = kb > 0 ? "+" : "";
+        return sign + to_string(kb);
+    };
+
+    cout << "\n";
+    top();
+    row("Memory Checkpoint", "RSS KiB", "Delta KiB", "HWM KiB", "Size KiB");
+    div();
+
+    for (int i = 0; i < (int)memoryLog.size(); i++) {
+        const auto& r = memoryLog[i];
+        row(r.label, fmtKb(r.vmRssKb), fmtDelta(r.deltaRssKb), fmtKb(r.vmHwmKb), fmtKb(r.vmSizeKb));
+        if (i + 1 < (int)memoryLog.size()) mid();
+    }
+
     bot();
 }
 
