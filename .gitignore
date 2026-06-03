@@ -1,6 +1,6 @@
 # Executables
 *.exe
-/test/
+/testing/
 *.out
 booking
 /bin/
